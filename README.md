@@ -1,6 +1,38 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20180330
+## updated the ADAMS model to input: joint torque output: joint angle
+linmod('model') would run into error
+
+tried to provide equilibrium point but the error stayed the same
+
+one reason could be that the accuracy of the equilibrium point was not enough so "it could not initialize"
+
+another question was how the linmod() function could tell the "state vector" of the system
+
+my system should be x = [joint_angles; joint_angles_dot], u = joint_torques, y = joint_angles
+
+## tested nonlinear hydraulic system with linmod()
+it worked pretty well and it generated states on its own
+
+but this counted for nothing b/c the model was built in Simulink where there were explicit integrator block to help it determine states
+
+still, how it determined states and how it matched states with initial conditions were pretty magical
+
+it could add extra states according to its own algorithm
+
+## used linmod() on the ADAMS model
+the previous problem seemed to be that there were multiple "control" modules active
+
+disabled all the rest and export control plant again
+
+linmod() could run but it gave back nothing useful
+
+the "state" of the system seemed to be 1 and couldn't be changed
+
+this might indicate that linmod() cannot be used over ADAMS model
+
 # 20180325
 as stated in the other repo, this work would have its own repo and this is it
 

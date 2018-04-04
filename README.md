@@ -1,5 +1,24 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20180404
+## paused the exploration of linmod()
+current assumption was that linmod() + ADAMS was not working
+
+a model directly built in Simulink was needed
+
+## started Simscape modeling of the system
+added *simTAU.slx* with the pairing initialization script *simTAUInit.m*
+
+### TODO list:
+- move it a little
+
+- update the correct params of the robot and verify against ADAMS
+
+- check the elbow part of the robot and recover most of the features
+
+- setup the correct I/Os for different purposes afterwards
+
+- (optional) inversely driven model with limits
 
 # 20180330
 ## updated the ADAMS model to input: joint torque output: joint angle

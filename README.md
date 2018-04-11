@@ -1,5 +1,37 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20180411
+## patched the rotation before the passive hook joint
+previous Simscape models didn't take into account the (90 + hookOffset) rotation at B1 and B2
+
+this was implemented so that, without the TCP platform, the elbows for limb 1 and 2 were still bent
+
+hookOffset was currently set to zero
+
+TODO: figure out on what level this hookOffset will take effect
+
+## fixed the problem with the discrete input in *simTAUJointDriven.slx*
+*simTAUJointDriven.slx* was added to drive the system from joint angles
+
+it was working after a few tries with variableStep Solver
+
+the S->PS option should be "filter input, derivatives calculated" and "second-order filtering"
+
+this was working currently so didn't dig deeper
+
+since this was intended to simulate physical system, continuous stuff should be preferred
+
+used to guess the type of input was wrong, so tried lookup-table input. should be the same, comment out instead of deleting it.
+
+added *inputSourceJoint.slx* to try out different kinds of input, could be deleted later
+
+## added *simTAUTCPDriven.slx* to develop a ["indirect inverse dynamic"](https://blogs.mathworks.com/simulink/2013/11/13/motion-actuation-in-simmechanics-r2013b/) model
+this was needed in order to get joint torque profile to drive the system in a forward manner
+
+a bush joint was used to define orientation of the TCP but the convention of this was unclear
+
+added *inputSourceTCP.slx* to study the convention
+
 # 20180404
 ## paused the exploration of linmod()
 current assumption was that linmod() + ADAMS was not working
@@ -9,12 +41,12 @@ a model directly built in Simulink was needed
 ## started Simscape modeling of the system
 added *simTAU.slx* with the pairing initialization script *simTAUInit.m*
 
-### TODO list:
-- move it a little
+### TODO LIST:
+- ~move it a little~
 
 - update the correct params of the robot and verify against ADAMS
 
-- check the elbow part of the robot and recover most of the features
+- ~check the elbow part of the robot and recover most of the features~
 
 - setup the correct I/Os for different purposes afterwards
 

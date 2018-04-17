@@ -1,5 +1,43 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20180417
+## renamed the file *simTAUJointDriven.slx* as *simTAUJAD.slx*
+4 signals of the system: joint angles, joint torques, TCP pose, TCP F/T
+
+one should be the input and the rest could be determined
+
+so there would be 4 files with *simTAU* as a prefix and the last 3 letters specified the input (the system was driven by this signal)
+
+all the other files should be named accordingly (JAD: joint angle driven)
+
+**TODO:** the sensor output had not been defined in this file yet
+
+## saved *simTAUJAD.slx* as *simTAUJTD.slx* to prioritize the model development for linmod()
+the model wanted for linmod() was JTD: joint torque driven
+
+flipped the I/Os for all joints with input torque and joint velocity sensing
+
+save this as *simTAUJTDlinmod.slx* for further development
+
+## used linmod() over *simTAUJTDlinmod.slx*
+the result was not satisfactory
+
+it automatically chose many states including the ones w.r.t the passive angles
+
+it also treated initial input strangely
+
+found another command linearize() which seemed to be more advanced and flexible
+
+but still states couldn't be specified
+
+# 20180416
+## confirmed the same convention was used for our code and the bush joint
+see [the other repo](https://github.com/easyt0re/Kinematics_Rewrite) for more details
+
+but I had trouble finding a simple visual demo to support this
+
+stopped the development of *inputSourceTCP.slx*
+
 # 20180411
 ## patched the rotation before the passive hook joint
 previous Simscape models didn't take into account the (90 + hookOffset) rotation at B1 and B2

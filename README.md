@@ -1,5 +1,47 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+
+# 20180418
+## added *linScript.m* to define options and operating point for linearize()
+switched from linmod() to linearize() b/c it seemed better
+
+saved *simTAUJTDlinmod.slx* as *simTAUJTDlinmod12.slx* and included joint velocity as well as joint angles as system output, making #output 12
+
+linearize() gave me a system with 12 states and with 12 outputs, C matrix became 12x12
+
+based on Lei's help, if C is invertible and if D is all-zero, the problem could be reformulate so that the state is the output, making the new C matrix an Identity Matrix
+
+this was tested and possibly doable and this would make the states the same as what we desired
+
+the code for this reformulation was implemented in the *linScript.m* script
+
+the current problem was to find the right operating point (op)
+
+findop() always returned a msg "Could not find a solution that satisfies all constraints.  Relax the constraints to find a feasible solution."
+
+that being said, the supposed op after this was "quite close to" what was designed
+
+a way to verify or make sense of the resulted system was needed
+
+no good documentation was found for this specific feature
+
+## saved *simTAU.slx* as *simTAUcheckOTorq.slx* to see the torque needed to hold at the origin
+sensing joint torque was added in this new file
+
+assumed the 3rd value from the total torque was what needed
+
+the idea was to JAD, sensing JT, then JTD to see if the TCP will stay at the origin
+
+saved *simTAUJTDlinmod12.slx* as *simTAUJTDConstIn.slx* for this purpose but it didn't work
+
+~the system wouldn't stay for no good reason (bad reason: numerical errors and stuff)~
+
+solved by frustratedly flipping the sign (this was a good reason)
+
+the system would stay for almost 1 second (this could be due to numerical stuff)
+
+control problem: after a small disturbance, how to come back to this state or stay at another state.
+
 # 20180417
 ## renamed the file *simTAUJointDriven.slx* as *simTAUJAD.slx*
 4 signals of the system: joint angles, joint torques, TCP pose, TCP F/T

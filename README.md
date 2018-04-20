@@ -1,6 +1,24 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20180420
+the linearization of the system seemed finally working
+
+the next step was to verify the linearization
+
+real robot -> ADAMS model -> Simscape model -> linearization of the Simscape model
+
+to verify, all models should be as close as possible on params and stuff
+
+## updated *simTAUInit.m* to have the correct params
+opened ADAMS model and updated the geometric params to be the same
+
+noted that most parts in ADAMS were actually defined as "steel"
+
+noted that BD was not modeled in Simscape model and it should be "aluminium"
+
+after this update, the torque at the origin looked closer to that observed in ADAMS
+
 # 20180418
 ## added *linScript.m* to define options and operating point for linearize()
 switched from linmod() to linearize() b/c it seemed better

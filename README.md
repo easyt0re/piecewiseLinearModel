@@ -1,6 +1,18 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20180426
+for some reasons, the z axis of joint 4 in the ADAMS model is not point out.
+
+this introduced a sign-flip between ADAMS model and Simscape model
+
+so the shared data between the two models needs extra care while the data used in only one model doesn't need that
+
+## deleted the -1 gain in joint 4 in *simTAUJTDlinmod12.slx*
+b/c the two model has different mass params, joint torque calculations only make sense in its own model
+
+so -1 gain in all JTD related *slx* files should be deleted
+
 # 20180420
 the linearization of the system seemed finally working
 

@@ -1,6 +1,41 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20180429
+most of the info would be in this log for today
+
+the work of today was to bring Simscape model closer to ADAMS model
+
+specific work included going back to ADAMS, CAD model to retrieve some numbers and making some simple reasonable simplification
+
+## updated *simTAUcheckOTorq.slx*, *simTAUJTDConstIn.slx*, and *simTAUJTDlinmod12.slx*
+these were the most up-to-date model for the time being
+
+added BD bar (L3), hook joint connector, materials, L1 L2 real length
+
+added the handle on the platform and moved the platform away a little from the TCP (using angle_beta)
+
+utilized hookOffset (current understanding was that it's just a way to set a better 0 for the joint b/c of range limit)
+
+however, it was visible that, at B and D, the alignment was not perfect
+
+the same should be true for implementing the sphere joint (hook + rot) close to the platform
+
+to visualize this, these offsets were there so that everything aligned beautifully when TCP is at origin
+
+## found more discrepancy between models (some facts)
+although there were materials assigned in CAD model, they were not the same (density) in ADAMS (ADAMS as standard, always)
+
+L1 bars in CAD were hollow tubes but they were solid cylinders in ADAMS
+
+the L1 bar in chain 3 was longer than the other two, see ADAMS for details
+
+only the L1 bar in chain 1 was defined as carbon fiber in ADAMS (all were steel in Simscape)
+
+all bars in Simscape were defined with the center of mass (CM) at the mid point of the 2 endpoints (this might not be true in ADAMS)
+
+based on all these, init_torques_adm = [-359.3; 217.8; 359.5; 2.40; -0.22; -952.1] and init_torques_sim = [0.3630; -0.2233; -0.3630; 0.0063; 0; 0.9414]
+
 # 20180426
 for some reasons, the z axis of joint 4 in the ADAMS model is not point out.
 

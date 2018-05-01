@@ -1,6 +1,14 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20180501
+## tried different ops for ctrb() amd obsv()
+first of all, 10 instead of 12 needed more reading to understand
+
+tried different op with a different TCP_pose and corresponding input (joint torque) but nothing changed
+
+tried to understand this from mechanism point of view (DOF, constraints) but failed
+
 # 20180429
 most of the info would be in this log for today
 

@@ -1,6 +1,38 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20180507
+## moved verification framework to this repo
+saved *stepTestNoG.slx* as *signalTestNoG.slx* and moved it here
+
+renamed *simTAUJTDlinmod12.slx* as *simTAUJTDlinmod12NoG.slx* and moved it here
+
+the *simTAUJTDlinmod12.slx* currently was with gravity
+
+copied ADAMS related stuff straight from ADAMS folder
+
+there was a flag to choose from step, pulse, or sine wave
+
+compensated the output from the lin model
+
+## tested step and pulse input
+the results from step and pulse were quite the same
+
+it's still a bit strange when joint 5 was active (could also be a sign flip)
+
+## tried to determine the uncontrollable state/mode but failed
+the idea was to transform to modal form but then the states had already changed
+
+besides, the system was sometimes controllable
+
+with gravity, with correct torque input, at origin, uncontrollable
+
+with gravity, with zero torque input, at origin, controllable
+
+zero gravity, with correct (=zero) input, at origin, controllable
+
+I could have done something wrong and, besides, it's not that important (controllability)
+
 # 20180501
 ## tried different ops for ctrb() amd obsv()
 first of all, 10 instead of 12 needed more reading to understand

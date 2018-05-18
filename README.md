@@ -1,6 +1,33 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20180514
+## updated verification framework for input signal type and op
+currently signal types were: step, pulse, sine wave, and square wave
+
+according to results, most tests were done with step
+
+datalogging was grouped by mux for better naming
+
+there was still a "zero alignment problem" across models
+
+TODO: patch this in later implementations b/c it's not that important
+
+## tried different things to understand and verify the models
+though tried different things with input, the dominant factor seemed to be "average amplitude" if under same amout of simulation time
+
+at first, all tests were done with a simulation time of 1 s and a delay of 0.2 s in the beginning
+
+then, a few test on very large amplitude was done in 1 s with a delay of 0.1 s
+
+after that, different ops were tested for delay of 0.1 and simulation time of 1 s and later 0.6 s for shorten the overall time
+
+~too many plots were generated but different behaviors were observed between ADAMS and Simscape~
+
+the results for ADAMS model might not be applicable b/c ADAMS model didn't have the capability to initialize at different ops
+
+ADAMS model could be starting at the origin and that might actually be the reason behind "zero alignment" problem
+
 # 20180507
 ## moved verification framework to this repo
 saved *stepTestNoG.slx* as *signalTestNoG.slx* and moved it here

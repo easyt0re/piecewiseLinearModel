@@ -1,6 +1,42 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20180521
+who are we kidding, she is just gorgeous
+
+this is more like a weekly update now
+
+define: AM, SM, LM to be ADAMS, Simscape, Linearized model
+
+## more on what's next
+it was confirmed that for some unknown reasons LM was uncontrollable with gravity activated
+
+3 things to try after this point:
+- do the whole thing w/o gravity to see what happens
+
+- separate and get rid of the uncontrollable part of the system
+
+- change output from joint space to TCP pose
+
+- figure out why it's uncontrollable
+
+## saved *simTAUJAD.slx* as *simTAUJADnew.slx* for motion testing
+checked with *simTAUcheckOTorq.slx*, SM was at an odd pose though input angles should be correct
+
+this could related to the multiple solution of the simulation and singularities
+
+no good solutions were found except adding hardstop to joints, which was tedious to implement and probably not what we needed
+
+attempted to try this with continuous motion (*simTAUJAD.slx*) instead of sudden initialization (*simTAUcheckOTorq.slx*) and it worked
+
+since the model changed a lot since *simTAUJAD.slx*, an updated version was created
+
+the test script was *testMotions.m*, similar to the routine in simTAUInit.m/load dataGen - use with Joint Angle Driven
+
+tested with the updated model and it worked fine in motion (z varied from 0 to 10)
+
+but the problem would show when initialized from 6 and moved to 10
+
 # 20180514
 ## updated verification framework for input signal type and op
 currently signal types were: step, pulse, sine wave, and square wave

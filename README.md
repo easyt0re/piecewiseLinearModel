@@ -1,6 +1,25 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20180529
+## LQR tryouts
+"intuitive values" for QR didn't give fast response and tuning from there seemed hard
+
+dropped back to equal weights and settling time was around 10 s (still slow)
+
+part of this was following the routine on [this page](http://ctms.engin.umich.edu/CTMS/index.php?example=InvertedPendulum&section=ControlStateSpace)
+
+in Q, set position to 100 and velocity to 1. the settling time was below 1 s
+
+set velocity to 0 would lead to some small oscillation
+
+the input amplitude were also OK in this case
+
+changed 100 to 10 would get a settling time of 2 s
+
+## pole placement tryouts
+the same pole couldn't be picked for more than rank(B) times
+
 # 20180523
 ## developed "sensor" for TCP pose
 added a bushing joint in *simTAUJADnew.slx* and tested with modified *testMotions.m*
@@ -135,6 +154,8 @@ it was confirmed that for some unknown reasons LM was uncontrollable with gravit
 - change output from joint space to TCP pose
 
 - figure out why it's uncontrollable
+
+(20180525) although this was already solved at this point but I happen to stumble upon a way to [identify uncontrollable modes](https://se.mathworks.com/help/control/ref/tzero.html#bs9mcm_-1)
 
 ## saved *simTAUJAD.slx* as *simTAUJADnew.slx* for motion testing
 checked with *simTAUcheckOTorq.slx*, SM was at an odd pose though input angles should be correct

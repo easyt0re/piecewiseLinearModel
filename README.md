@@ -1,6 +1,41 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20180729
+## not sure if "piece-wise linear" ever made sense here but this was about SM and LM development
+
+## added to take care of the plot
+previously, the data logging plot was not satisfying and flexible enough
+
+added many "to workspace" blocks to all the logging signals in *controlDesign.slx* for later plots
+
+added *plotControlDesign.m* to plot position, velocity, and input
+
+it seemed that though OP was at the origin, TCP could still go back from a far point on the edge of the workspace
+
+## some unlogged stuff 
+added *controlDesign.slx* for further controller design
+
+added *controlDemo.slx* for animation of the controller performance
+
+this could not be achieved by *controlDesign.slx* mainly b/c a ref model was used
+
+otherwise, there was no big deal with this demo file
+
+added a RefPt in *controlDemo.slx* to verify the displacement in TCP
+
+in *linScriptJS.m*, commented out the sign flip for init_joints_p_sim b/c there was already a sign flip hard coded in joint 4 in *simTAUJTDlinmod12.slx* already 
+
+maybe it's better to left *simTAUJTDlinmod12.slx* unchanged
+
+# 20180604
+## info on motor selection in TAU
+as stated in the MF 2004 report and other materials, the motor used was RE 25 graphite brushes, 20W, 339152
+
+with norminal torque 28.8 mNm and stall torque 304 mNm, more specs could be found in catalog
+
+gear ratio: joint 1 & 3: 10; joint 2 & 4: 3.5;
+
 # 20180529
 ## LQR tryouts
 "intuitive values" for QR didn't give fast response and tuning from there seemed hard

@@ -1,6 +1,26 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20180815
+## added *indeJointControl.m* and *indeJointControlModel.slx* for independent joint control for comparison
+there were 2 ways to make a comparison with my newly designed controller
+
+one was against a full theoretical dynamic model (on hold, again), the other was against a independent joint control structure (WIP)
+
+as the name suggested, this was control single joint w/o considering coupling effects among joints
+
+for the moment, the plants for all joints had the form of 1/s^2
+
+PID with LP (anti-windup) was implemented as the controller
+
+this was copied from previous workshop 1 with continuous & discrete implementations
+
+the result was a bit unpredictable
+
+currently, one of the problems was to design both controllers under the same requirements
+
+another problem seemed to be a implementation problem: there was a unwanted vibration at the initial position
+
 # 20180729
 ## not sure if "piece-wise linear" ever made sense here but this was about SM and LM development
 

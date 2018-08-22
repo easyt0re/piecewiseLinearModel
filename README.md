@@ -1,6 +1,60 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20180822
+## started to "measure/estimate" moment of inertia w.r.t each joint
+the idea was to, first fix every joint and turn the mechanism into a structure, and then spin the structure at a constant acceleration
+
+by measuring the joint torque, estimate moment of inertia
+
+to this end, added *structTAU.slx* to develop locked-down TAU and added *actuationTAU.slx* to actuate different joints separately
+
+ran into "S->PS" module problem again
+
+TIP: NEVER use filtered option; SOLUTION: provide the derivatives needed manually
+
+more tests were needed to ensure everything was correctly implemented and measured
+
+NOTE: about the measurement from a single revolute joint
+
+measured total torque (3-by-1 vector) and only took the tt_z b/c that's the "actuation torque", other torques were "constraint torques"
+
+the other sensing torque (t instead of tt) was supposed to be the combination of all torques, which was not useful in this case
+
+# 20180820
+## modified *indeJointControlModel.slx* to test some theories to overcome previous problems
+
+previously, unwanted performance (mostly large overshoot) and unpredictable vibrations were discovered with the independent joint controller(IJC)
+
+took the assumption that the controller was only controlling the motor but not TAU, every time it should go from 0 to some wanted position
+
+so it should work like each time a new "0" was set and the underlying assumption was that going from 0 to 1 and 1 to 2 should be the same
+
+this solved the problem of "the controller was not behaving as designed"
+
+## added *controlCompare.slx* to apply the IJCs to TAU
+the idea was to use the independently designed IJCs to control TAU
+
+but it's not working
+
+taking a look back, some bold assumptions might be the problem and there was also an ultimate question
+
+the IJCs were built based on the plant that only had acc term but no pos term
+
+this indicated that the "load", whether internal or external, was symmetric w.r.t the motor shaft, meaning it's regardless of the position
+
+this was far from the truth and could lead to unstable result
+
+compared with the LM controller, the "info" about init position was mostly lost due to the fact that no matter where it started, as long as the "displacements" were the same, the controller couldn't tell the difference and the output of the controller was the same
+
+init TAU at the origin was also tested and the controller couldn't hold the system at the origin either
+
+faster controller with faster ob (for robust to modeling error) was also tested but it didn't work
+
+one thing didn't try was disturbance analysis, where the controller was robust to disturbance (everything that's not considered in the plant was considered disturbance)
+
+as mentioned, since nothing worked, the ultimate question surfaced: what if this would never work
+
 # 20180815
 ## added *indeJointControl.m* and *indeJointControlModel.slx* for independent joint control for comparison
 there were 2 ways to make a comparison with my newly designed controller
@@ -17,7 +71,9 @@ this was copied from previous workshop 1 with continuous & discrete implementati
 
 the result was a bit unpredictable
 
-currently, one of the problems was to design both controllers under the same requirements
+~currently, one of the problems was to design both controllers under the same requirements~
+
+agreed on creating controllers with similar response time, then compare other aspects of the controller like control effort and stuff (20180820)
 
 another problem seemed to be a implementation problem: there was a unwanted vibration at the initial position
 

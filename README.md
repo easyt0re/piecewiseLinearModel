@@ -21,6 +21,25 @@ measured total torque (3-by-1 vector) and only took the tt_z b/c that's the "act
 
 the other sensing torque (t instead of tt) was supposed to be the combination of all torques, which was not useful in this case
 
+## the test were carried out and results were noted
+the input of this case (*actuationTAU.slx*) was capable of spin one or more joints with constant angular acc
+
+originally, constant speed was also intended but later found no use and then stopped
+
+manually dis/connecting the structure and the actuation was needed in the *slx*
+
+added *IJCmomentOfInertia.m* as a dedicated script for this test
+
+chose actuated joint and acceleration in the script
+
+usage of the script with the *slx*: choose one joint, acc in the script; connect the corresponding ports; run script
+
+it's verified that at different acceleration, torque over acc was a constant, which in this case was considered "equivalent moment of inertia"
+
+the numbers were far away from what previously calculated in *indeJointControl.m*, which could potentially improve the performance of the controllers
+
+further tests with IJC from the new params would be the next step
+
 # 20180820
 ## modified *indeJointControlModel.slx* to test some theories to overcome previous problems
 

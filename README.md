@@ -1,6 +1,27 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20180823
+## major improvement in IJC after using new moment of inertia
+after the switching, the controllers seemed to be working
+
+but there was a requirement in rise time: if too long, TAU would not stable at one point
+
+tested cases:
+- 0.5 s, stable but with small "noise"
+- 0.6 s, small wingles before "settle"
+- 0.7 s, constant vibration with small "noise" (higher freq vibration)
+
+currently, rise time was set to 0.1 s for quick and stable response
+
+it should be noted the "trajectories" were not as smooth as LM cases
+
+if use pole placement, similar performance could be achieved
+
+if use lqr design, similar performance in position could be achieved with Q = [1, 1000]  (only the ratio 1:1000 mattered) 
+
+all model could be clipped at simulation time = 1 s for details
+
 # 20180822
 ## started to "measure/estimate" moment of inertia w.r.t each joint
 the idea was to, first fix every joint and turn the mechanism into a structure, and then spin the structure at a constant acceleration

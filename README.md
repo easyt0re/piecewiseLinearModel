@@ -1,6 +1,93 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20181021
+a lot has happened since last unfinished update
+
+I suffered a lot from assemble a manuscript
+
+the research focus shifted a little bit from fast control to new control
+
+## added *exeScript.m* for running everything in one script
+this is also good for remembering what each script does and the sequence to run them
+
+right now this is quite simple and straight forward
+
+## added a bunch of files for 1D disturbance simulation
+added *disturb1DInit.m* to init 1D disturbance and could enable noise
+
+added *controlDemoLMwI1D.slx* and *controlDemoIJ1D.slx* for simulation
+
+## modified *plotControlDesign.m* to plot data better
+added script for setting scale in y to be the same across all subplots
+
+the 6 plots were 2x3 now instead of 3x2 (TODO: need to change position maybe later)
+
+## added *simLei.m* to do the simulation Lei suggested
+this might not be useful later but it's good exercise nonetheless
+
+## added *controlDemoDR.slx* for direct of dynamic rendering
+I don't remember the naming convention but it's not useful anyway
+
+## added *simTAUJADnew.slx* for testing new motions
+this should be based on *simTAUJAD.slx*
+
+I don't remember but I was trying to move it around with new motions
+
+maybe this was an attempt to put "sensors" on TCP
+
+# 20180907
+## developed LQR controller with integrator
+this part of the work was based on [this page](http://ctms.engin.umich.edu/CTMS/index.php?example=MotorPosition&section=ControlStateSpace)
+
+as said in 0904 log, LMC was soft and this soft was generally considered as steady-state error
+
+LQR was in its nature lack of an Integrator module, where it cannot take care steady-state error
+
+we want the controller to reject disturbance and keep TCP at origin
+
+## updated *linScriptJS.m* for LQR w/ I
+after playing around with values, the disturbance rejection worked fine
+
+saved a part of *controlDesign.slx* as *lqrDesignwI.slx*, played with it, and failed
+
+added *lqrIDesignwNewPlant.slx* to implemented the idea mentioned in this link above
+
+after testing, the controller was put into *controlDemoLMwI.slx* as the new simulation file
+
+# 20180904
+## major shift in development and test with step instead of a pulse
+developed a demo on "disturbance" (sudden force/torque pulse on TCP)
+
+this was achieved by adding bushing joint in the model and actuated by F/T
+
+made copies of previous models and saved as a new name with a *wTT* suffix
+
+added 6 pulses to be the input and a *disturbInit.m* to assign values to them independently
+
+based on Lei's suggestion, extended "pulse" into a "step/square wave" by extending duty cycle
+
+discovered that, for some reason, the models using reference model "breaks" towards the end of the simulation
+
+major shift was stopping the development of the reference model ones and shifting to *slx* files with "Demo" in their names
+
+same init params didn't break in "Demo" files (these files were initially for animation purpose)
+
+the folder was growing to 70+ files and 30MB+
+
+development would continue on *controlDemoLM.slx* and *controlDemoIJ.slx*
+
+## performance with "constant disturbance"
+"constant disturbance" was referring to the extended (to 1 s duration) disturbance pulses
+
+current amplitudes were set to 5 N for force and 0.5 Nm for torque
+
+IJC could resist the "press" and brought the system back to the position (origin currently) but there were 2 peaks in control input corresponding to the "step-up" and "step-down" of the disturbance
+
+LMC seemed to be too soft as in it would be pushed away from the position by the disturbance and stayed somewhere that it found its balance again
+
+it should be noted that currently for LQR design [Q]:R == [1:1000]:1
+
 # 20180823
 ## major improvement in IJC after using new moment of inertia
 after the switching, the controllers seemed to be working

@@ -1,17 +1,32 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20181022
+## modified *indeJointControl.m* response time
+I used to use 0.1 s as rise time, changed to 0.05 s for faster response
+
+I want to demonstrate that although IJC is faster than LQRwI, the performance is not better
+
+## how to show that the 2 controller are comparable
+the idea was to show they have similar performance at one task (random initial pose)
+
+but different behaviors in other tasks (disturbance rejection)
+
 # 20181021
 a lot has happened since last unfinished update
 
-I suffered a lot from assemble a manuscript
+I suffered a lot from assembling a manuscript
 
 the research focus shifted a little bit from fast control to new control
 
 ## added *exeScript.m* for running everything in one script
-this is also good for remembering what each script does and the sequence to run them
+this was also good for remembering what each script does and the sequence to run them
 
-right now this is quite simple and straight forward
+currently this was quite simple and straight forward
+
+this was renamed as *exeDisturbScript.m* for this was for running disturbance simulations
+
+saved it as *exeInitPosScript.m* for running simulations with a initial pose away from the origin
 
 ## added a bunch of files for 1D disturbance simulation
 added *disturb1DInit.m* to init 1D disturbance and could enable noise
@@ -36,6 +51,19 @@ I don't remember but I was trying to move it around with new motions
 
 maybe this was an attempt to put "sensors" on TCP
 
+## just to clear things up...
+*controlDesign.slx* was the one trying to design a controller based on linearized model
+
+this is essentially the father file of all the LQR related controller design files
+
+*controlCompare.slx* was the one implementing IJC, father of all IJC related files
+
+these 2 used ref models, so there was no animation
+
+and b/c the ref was *simTAUJTDlinmod12.slx*, these are for simulation w/o disturbance on TCP
+
+as mentioned before "Demo" files were made to have animation and later became the main version for development
+
 # 20180907
 ## developed LQR controller with integrator
 this part of the work was based on [this page](http://ctms.engin.umich.edu/CTMS/index.php?example=MotorPosition&section=ControlStateSpace)
@@ -54,6 +82,8 @@ saved a part of *controlDesign.slx* as *lqrDesignwI.slx*, played with it, and fa
 added *lqrIDesignwNewPlant.slx* to implemented the idea mentioned in this link above
 
 after testing, the controller was put into *controlDemoLMwI.slx* as the new simulation file
+
+*controlDemoLMwI.slx* should be based on *controlDemoLM.slx* so be aware that their variables could be overloaded (bug or feature)
 
 # 20180904
 ## major shift in development and test with step instead of a pulse

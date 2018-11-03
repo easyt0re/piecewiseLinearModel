@@ -1,6 +1,19 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20181103
+## added *plotSepFigs.m* to plot in separate plots instead of subplots
+this was not really important but the plots were bigger
+
+also added a utility/helper function to save all the plots *saveMultiFigs.m*
+
+learned many useful things about figures
+
+## added TCP pose sensing in all the *1D* models
+it was "measured" and saved if needed
+
+this helped me determine error in workspace corresponding to an error in jointspace
+
 # 20181022
 ## modified *indeJointControl.m* response time
 I used to use 0.1 s as rise time, changed to 0.05 s for faster response

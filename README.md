@@ -1,6 +1,17 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20181108
+## added post-processing in *plotControlDesign.m*
+generated a table from the figures for maximal deviation and torque
+
+## modified all the joint angles to vary around 0
+basically, redefined the zero point of all joints so that `forwardKin([0,0,0,0,0,0]) = [0,0,0,0,0,0]`
+
+then the figures were really deviations (w.r.t 0) when 0 means 0 deviation
+
+added an `isAroundZero` flag to choose if plot figures around 0
+
 # 20181103
 ## added *plotSepFigs.m* to plot in separate plots instead of subplots
 this was not really important but the plots were bigger

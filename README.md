@@ -1,6 +1,36 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20181114
+not much is done, I just want to log it for future reference
+## started to try discrete time control
+short answer: it is not working
+
+tried to have shorter sampling time (0.0001 s) and rise time (0.005 s) but that wasn't feasible because the motors were saturated all the time
+
+currently it was set to 0.001 s and 0.05 s and individual motors seemed to work
+
+set `A0 = 2 * Am` to be consistent with continuous time
+
+with a `step = 1`, it was not working due to saturation also
+
+we should avoid saturation because it basically means the motors are not strong enough
+
+one simple solution would be having larger saturation threshold
+
+individual motor control exhibited similar plots but discrete time controller couldn't even hold the TCP at origin, where continuous time controller had no problem
+
+discrete time controller would deviate and oscillate for quite long with no sign of stabilization
+
+it seemed to be because of the saturation as well
+
+it should note that previously the motor were already operated on the edge of saturation
+
+renamed *indeJointControl.m* as *indeJointControlCont.m* for continuous time and saved as *indeJointControlDisc.m* for discrete time
+
+## struggled with keeping track and tried to push this into KTH Github
+fingers crossed that it would work
+
 # 20181108
 ## added post-processing in *plotControlDesign.m*
 generated a table from the figures for maximal deviation and torque

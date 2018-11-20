@@ -1,5 +1,66 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20181120
+## ran more tests to tune IJC discrete params
+since PID was not really tuned but designed, the idea was to play around with sampling time, saturation limit, and maybe A0 freq
+
+- design params were fixed with `Trise = 0.05; Mp = 2/100;`
+- `freq_m = 100; freq_0 = 200; freq_sample = 1000`
+- current setup was sampling 1 ms, saturation 2 Nm, A0 = 2 Am, and for offset test it couldn't get back and start oscillation which seemed to be due to saturation. this was also noted previously. disturbance test seemed to have similar results. it seemed that after discretization, the motors were not as powerful
+- having shorter sampling time didn't really help (0.5 ms, 0.25 ms). no matter what I do, the system seemed to go into a high freq oscillation
+- increasing saturation didn't help and actually allowed the system to go into singularity. more than 500 (2000) was needed to have 0 saturation but that's unreasonable and instable. 
+- just in case I made mistakes in A0 freq calculation, A0 was set to Am again. not helping
+- so, ok, shortening sampling time *DID* work. 0.1 ms got it stable with A0 = Am. sampling time was basically 100 times faster. maybe at this point it's fast enough to be considered as continuous. maybe it didn't work before b/c I used to have A0 = 2 * Am
+
+to sum up, I suspected that the motors were acting against each other, otherwise, there was no need for huge control input signal
+
+## added discrete time LQR *lqrDisc.m*
+this was done simply by `lqrd()` in MATLAB
+
+it's more or less the same with `lqr()` except for an extra arg for sampling time
+
+it's quite amazing to see the system was still stable even if the sampling time was 0.01 s albeit the system was too slow after the frustration from what happened with PID
+
+0.1 ms definitely worked and 1 ms showed a deteriorated performance but still OK (better than IJC)
+
+added one line in the back to check poles of close-loop system and it's slower than 120, which was reasonable
+
+# 20181116
+## added scripts for System Objects to draw figures
+used *visualDemo.slx* to draw Simulink diagram figures for the paper
+
+system object was used to have proper name displayed at the center of the block
+
+it was definitely an overkill but I hope this function could grow into something useful for MATLAB
+
+## ran more tests to tune LQR params
+I should have logged all the tests I ran and why I ended up with these params
+
+IJC params were fixed with `Trise = 0.05; Mp = 2/100;`
+
+IJC performance: with individual joint, it's what is designed; with TAU, it's similar, the signal settled between 0.1 to 0.2 s
+
+for IJC and LQR, the joints with close-to-zero movements had unpredictable motions or some small oscillations
+
+- with `Q = [1, 1e3, 1e6], R = 1`, overshoot was a lot larger than IJC, rise time was short than IJC but settling time is between 0.2 and 0.3 s; torque wise, IJC saw larger amp and high freq oscillation while LQR was smoother but joint 6 reached saturation (torque limit = 2 Nm)
+
+- with `Q = [1, 1e3, 1e6 (1e9)], R = 0.1`, overshoot was even larger in position but the overshoot disappeared quite fast, there was saturation in motors, 1e6 and 1e9 made no difference
+
+- with `Q = [1, 1e6, 1e9], R = 1`, this was the set of params I went with in the paper, the overshoot was smaller than previous tests but still larger than IJC
+
+these tests above were done with a initial pose other than the origin
+
+it should have a different response to disturbance rejection tests
+
+- with `Q = [1, 1e6, 1e9], R = 0.1`, the deviation was smaller and the input torque was faster and a bit smaller actually
+
+- with `Q = [1, 1e3, 1e6], R = 1 or 0.1`, the position was too slow so there was large deviation, the torque was also slow so maybe it's a bad set of params
+
+- `R = 1` vs `R = 0.1`: in offset test, 0.1 had larger input with less overshoot, the rise time was also shorter, these were supposedly because of allowing larger input; this change didn't have much difference in disturbance test
+
+after these tests, the params should be `Q = [1, 1e6, 1e9], R = 0.1` with a good performance in disturbance rejection. and since 0.1 and 1 didn't make much difference, 1 was used for R to punish a bit input
+
+Note that saturation of LQR controller was not address currently
 
 # 20181114
 not much is done, I just want to log it for future reference
@@ -319,7 +380,7 @@ maybe it's better to left *simTAUJTDlinmod12.slx* unchanged
 ## info on motor selection in TAU
 as stated in the MF 2004 report and other materials, the motor used was RE 25 graphite brushes, 20W, 339152
 
-with norminal torque 28.8 mNm and stall torque 304 mNm, more specs could be found in catalog
+with nominal torque 28.8 mNm and stall torque 304 mNm, more specs could be found in catalog
 
 gear ratio: joint 1 & 3: 10; joint 2 & 4: 3.5;
 
@@ -417,7 +478,7 @@ the definitions in SM related stuff were the same, pointing out as joint 2
 
 it's too late now but maybe this should be avoided in the first place
 
-secondly, everytime after IK routine, a sign flip should be done and saved separately with a noticable name
+secondly, every time after IK routine, a sign flip should be done and saved separately with a noticeable name
 
 thirdly, a flip could be done in IK related routine
 
@@ -484,7 +545,7 @@ checked with *simTAUcheckOTorq.slx*, SM was at an odd pose though input angles s
 
 this could related to the multiple solution of the simulation and singularities
 
-no good solutions were found except adding hardstop to joints, which was tedious to implement and probably not what we needed
+no good solutions were found except adding hard stop to joints, which was tedious to implement and probably not what we needed
 
 attempted to try this with continuous motion (*simTAUJAD.slx*) instead of sudden initialization (*simTAUcheckOTorq.slx*) and it worked (there was no sudden flip or crossing singularity)
 
@@ -502,14 +563,14 @@ currently signal types were: step, pulse, sine wave, and square wave
 
 according to results, most tests were done with step
 
-datalogging was grouped by mux for better naming
+data-logging was grouped by mux for better naming
 
 there was still a "zero alignment problem" across models
 
 TODO: patch this in later implementations b/c it's not that important
 
 ## tried different things to understand and verify the models
-though tried different things with input, the dominant factor seemed to be "average amplitude" if under same amout of simulation time
+though tried different things with input, the dominant factor seemed to be "average amplitude" if under same amount of simulation time
 
 at first, all tests were done with a simulation time of 1 s and a delay of 0.2 s in the beginning
 
@@ -624,7 +685,7 @@ opened ADAMS model and updated the geometric params to be the same
 
 noted that most parts in ADAMS were actually defined as "steel"
 
-noted that BD was not modeled in Simscape model and it should be "aluminium"
+noted that BD was not modeled in Simscape model and it should be "aluminum"
 
 after this update, the torque at the origin looked closer to that observed in ADAMS
 
@@ -663,7 +724,7 @@ saved *simTAUJTDlinmod12.slx* as *simTAUJTDConstIn.slx* for this purpose but it 
 
 ~the system wouldn't stay for no good reason (bad reason: numerical errors and stuff)~
 
-solved by frustratedly flipping the sign (this was a good reason)
+solved by frustratingly flipping the sign (this was a good reason)
 
 the system would stay for almost 1 second (this could be due to numerical stuff)
 

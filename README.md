@@ -1,5 +1,96 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+
+# 20190103
+## tested with disturbance
+previous tests were done with initial position script and the params chosen did OK
+
+the problem was after doing disturbance tests, the new system could not keep up (new system had lower gain compared to previous tuning)
+
+ran the same 10x10 tests with disturbance simulation, by first look results showed that `errGain >= 1e6` seemed to be comparable with PID
+
+turned off the visualization for simulations from the settings for *controlDemoLMwI1D.slx* and *controlDemoLMwI.slx* b/c had to run multiple tests and that slowed down the process
+
+**TODO:** would be nice if this could be done in script
+
+**OK, I got EVERYTHING WRONG!!!**
+## coarse search for LQR gain, AGAIN!
+I flipped the axis and Fed up some other things, so all previous "conclusions" were all wrong
+
+if the plots were correct this time, conclusions:
+- with the same `posGain`, higher `errGain` meant shorter rise/settling time but also larger overshoot
+- after `posGain > 1e3`, LQR would always be faster than PID regardless of `errGain`
+- after `posGain > 1e3`, there would always be an overshoot regardless of `errGain`
+- after `posGain > 1e6`, there weren't much difference when time scale was 0~0.2 s, it became a very fast system with very small overshoot
+- with the same `errGain`, higher `posGain` meant shorter rise/settling time, and probably smaller overshoot, but it also seemed that this shrinking overshoot effect was not very obvious when `posGain` was too small compared to `errGain`
+- after `errGain > 1e5`, LQR would always be faster than PID regardless of `posGain`
+
+the above was observed from joint 6, the trends seemed universal but the threshold could be different for different joints
+
+the acceptable params could be: `posGain, errGain = (1e3, 1e4), (1e3, 1e5), (1e4, 1e4), (1e4, 1e5)` 
+
+# 20190102 Happy New Year!
+## coarse search for LQR gain
+added *lqrSweep.m* for the real sweep and save data to workspace of MATLAB
+
+this would take a while to run b/c of simulation for the first time
+
+added *lqrSwpPlot.m* for later plotting straightly from previously saved data
+
+this added a "reference line" (horizontal line) to the plot
+
+the scale of y axis was currently set to all the same, could be very coarse for some joints, but it also reflected the fact that some joints were "insignificant"
+
+taken a first look, the conclusions were: 
+- higher position gain had shorter rise time, larger overshoot
+- higher error gain had less overshoot, faster recovery from overshoot, and a bit shorter rise time
+
+the unrealistic gain could be due to unrealistic requirement
+
+the ultimate question would be what haptic refresh rate at 1kHz means to a position controller
+
+after a closer look, `1e3, 1e3` seemed a set of good params for comparable result with PID (rise time and overshoot)
+
+the current problem was that settling time was too long
+
+on the other hand, the close-loop poles calculated by me didn't change too much given all different gains
+
+**TODO:** how to calculate poles for MIMO or what does my calculation mean?
+
+plotted 10x10 gain from `1e0` to `1e9`, `errGain = 1e3` seemed proper for the rise time, similar or slower than PID, `posGain = 1e0 ~ 1e5` seemed OK. this was mostly with "undershoot" and the settling time was way to long compared to PID
+
+# 20181227
+## more tests with reasonable LQR gains
+Lei finally suggested that the gains were unacceptable
+
+unsolved problem: nfreq for PID was 100 rad/s but poles for LQR were at 10^3
+
+argument for this: but they have actually comparable performance with *exeInitPosScript.m*
+
+Lei commented: the difference should be around 10, 10^3 was too much
+
+so more simulation results were needed to tune the gains
+
+simulation log (simulation time = 10 s, R = 1, with *exeInitPosScript.m*):
+
+- 1:10:100, after 3 s, everything was settled, overshoot could be 10%
+- 1:10:10, overshoot was smaller, the rise time was longer, very slow to settle
+- 1:1:10, compared to $1^st$ it's slower, larger overshoot; compare to $2^nd$ it's slower, larger overshoot, maybe faster at settling
+- 1:10:1, compared to $2^nd$ it's a bit slower, less overshoot, slow to recover after overshoot, very slow to settle, over 10 s
+- 1:100:1, overshoot was even smaller but the recovery from the overshoot was too slow, the rise time was quite fast, after 0.5 s it's almost at the ref with a bit overshoot
+
+lost in all the plots, started to do sweep search
+
+# 20181201
+## tried zero order hold but didn't improve anything
+added 3 zero order holds on input, output, and feedback of the IJC controller and saved as *DcontrolDemoIJ.slx* based on *controlDemoIJ.slx*
+
+it had perhaps the identical performance
+
+tried 1 ms and 0.1 ms, no noticeable difference w/ or w/o zero order hold
+
+and with 0.05 ms, the system was back to normal
+
 # 20181120
 ## ran more tests to tune IJC discrete params
 since PID was not really tuned but designed, the idea was to play around with sampling time, saturation limit, and maybe A0 freq

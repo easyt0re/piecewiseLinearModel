@@ -1,6 +1,49 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20190228
+## revisited the notion of moving everything to discrete time
+~(it should be noted that the saturation for LQR controller in continuous time was not implemented)~
+- [x] controller design in discrete time (*lqrDisc.m*, *indeJointControlDisc.m*)
+- [x] zero order hold in Simulink model (*DcontrolDemoIJ.slx*)
+- [ ] quantization of sensors in Simulink model
+
+## played around with sampling time again
+this was done with individual IJC only, no interactions among them
+
+`freq_0 == freq_m = 100; freq_sample = [1000, 3000]; samplingTime = [0.33, 1] ms`
+
+the above was some calculation and usual recommendations (rule of thumb)
+
+however, there was an obvious nonlinear behavior if `samplingTime > 0.3 ms`
+
+accompanied with this nonlinear behavior, oscillation within the saturation limits was also observed and assumed to be the reason
+
+if this was not "perfectly" working, one couldn't expect this would work when there was additional interaction/disturbance
+
+and when moved this to *exeInitPosScript.m*, it worked when `samplingTime = 0.1 ms`
+
+## added saturation to *controlDemoLMwI.slx* for LQR controller
+the performance was a little bit worse but it was OK
+
+the sampling time could be 1 ms
+
+signals before/after saturation were logged but only before was saved to MATLAB workspace and plotted
+
+same saturation was also added to *controlDemoLMwI1D.slx*
+
+after this, a zero order hold was added and the model was saved as *DcontrolDemoLMwI.slx*
+
+more things were needed for *DcontrolDemoLMwI.slx*
+
+# 20190105
+## extended the test to even tune gain for velocity
+after discussion with Tong, tried to fix `errGain` and grid search the other 2
+
+this didn't work out. for unknown reasons, it stuck the first time `velGain` was large
+
+I think I need to take a step back and think about the paper and what is all of this
+
 # 20190103
 ## tested with disturbance
 previous tests were done with initial position script and the params chosen did OK
@@ -82,7 +125,7 @@ simulation log (simulation time = 10 s, R = 1, with *exeInitPosScript.m*):
 lost in all the plots, started to do sweep search
 
 # 20181201
-## tried zero order hold but didn't improve anything
+## tried zero order hold but didn't improve anything (discrete)
 added 3 zero order holds on input, output, and feedback of the IJC controller and saved as *DcontrolDemoIJ.slx* based on *controlDemoIJ.slx*
 
 it had perhaps the identical performance

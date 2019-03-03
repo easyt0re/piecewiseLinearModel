@@ -1,6 +1,36 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20190303
+## played with A0 in discrete time
+Lei mentioned the reason of oscillation was maybe sensitivity to model error not sampling time
+
+previously, it was always `A0 == Am`, b/c it seemed that faster A0 required even shorter sampling time
+
+and previous results weren't wrong: when `samplingTime = 0.1 ms`, all problems went away
+
+it's just that this time scale was not reasonable
+
+let's recap and look at the result differently
+
+first of all, it's still individual IJC only and step ref was calculate from `init_TCP_pose_sim = [0; 0; 5; 0; 0; 0];`
+
+currently, I wasn't totally sure why this offset influenced the performance
+
+it could be that larger offset made it easier to go to saturation
+
+with 1 ms sampling time, `A0scale = 5` seemed to be quite good
+
+larger than 5 didn't do much; less than 5 had slower response and nonlinear behavior
+
+on a second thought, would this "5" be associated with the offset, meaning there could be a different "optimal" scale for a different offset
+
+it should also be noted that the sampling time was not that short anymore
+
+with fast observer part, the nonlinear behavior in position went away but the control input still hit saturation
+
+after all of this, individual IJC seemed working but *exeInitPosScript.m* was still not working
+
 # 20190228
 ## revisited the notion of moving everything to discrete time
 ~(it should be noted that the saturation for LQR controller in continuous time was not implemented)~

@@ -1,6 +1,35 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20190308
+## had a meeting with Binbin
+tried to refresh my memory with dynamics through virtual work
+
+current understanding was: it's based on $Fv=0$ and $F$ is acceleration force
+
+the assumption of 0-mass link was also discussed
+
+it could simplify things but Binbin was not a big fan of it
+
+she suggested another simplification so that all legs are identical in kinematics
+
+## had a meeting with Lei
+demonstrated most findings I had with all the discrete time simulations and learned a few things
+
+`A0` should be faster rather than slower b/c it seemed that it's a model error rather than sensor noise
+
+different rise time seemed to have better response in PID. fast: `6 > 1, 3 > 2, 4, 5`
+
+could play with damping and `A0` a bit
+
+should have `pzmap()` some where in discrete time design to check zeros/poles in disc/cont close/open loop (this was mostly for stability margin and stability check)
+
+it's hard to tell why there was a high freq vibration
+
+for LQR, I could have an anti-windup at the integral
+
+for LQR, I should try to understand why such high gain and if possible, pole-placement high speed poles to low
+
 # 20190303
 ## played with A0 in discrete time
 Lei mentioned the reason of oscillation was maybe sensitivity to model error not sampling time
@@ -9,7 +38,7 @@ previously, it was always `A0 == Am`, b/c it seemed that faster A0 required even
 
 and previous results weren't wrong: when `samplingTime = 0.1 ms`, all problems went away
 
-it's just that this time scale was not reasonable
+it's just that this time scale was not reasonable and maybe we could do this with a reasonable sampling time
 
 let's recap and look at the result differently
 

@@ -1,6 +1,93 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20190403
+## OK, I didn't fully understand what Lei said, again
+first of all, this position controller was only used for stiff interaction
+
+so to render a spring, some other controller or algorithms should be used
+
+secondly, "writing on the wall" case can be done with a computed reference signal (not sensor feedback)
+
+when there was a collision, the reference position is always a point on the wall, so it's different from the encoder reading
+
+this could work actually although it could be difficult to implement
+
+and maybe the control burden was shifted to those conditions: instead of a complex controller, you have conditions to evaluate
+
+now I would say it sounds really promising. maybe I should push this through
+
+they had no more further comments on the stuff Kjell brought up
+
+# 20190402
+## Kjell mentioned about the size of the "step"
+this was quite interesting and practical yet i never thought about this
+
+since the rise time is 50 ms, we basically asked the system to cover the step within this time
+
+if the step was 5 mm (the number I used in previous tests), the velocity of the TCP is 5 mm/50 ms, which is 0.1 m/s. is this reasonable?
+
+and to check the acceleration in this logic, it's probably 8 m/s^2. is this reasonable?
+
+and according to the paper I read recently, there is definitely some max performance (i.e. acceleration at TCP) that can be computed
+
+and also, maybe it is the haptic control algorithm's duty to keep the actuators from saturation
+
+for the second point, my question is, how? could this be my next mission? at least it sounds challenging and complex
+
+## thoughts on Lei's direction
+I was really confused about how I could place his vision under the scope of haptics
+
+what he wanted me to implement seemed something that had never been done before
+
+to me, this could only mean, a) I didn't find the papers yet, b) this was somehow proved impossible, wrong, or too hard to do
+
+I always thought something was wrong about this but let me just have faith for a little while
+
+we proposed to use position control to solve haptic rendering, which was mostly done as open-loop force control
+
+so this idea couldn't fit in the figure of a "traditional haptic rendering" loop or structure
+
+I think this position controller idea only works on stiff object with infinite stiffness
+
+in other words, I don't think this can render a spring
+
+consider a k=1 spring with user pressing 1 inward, how do we render this with a position controller?
+
+the position should not change if the user doesn't move but we cannot know that
+
+and the user should feel force=1 pushing back. we cannot do that with position control
+
+at first, I thought it was admittance control instead of impedance control but it was also not the case
+
+and I think admittance control works only with a force sensor. we have a force sensor but it's another story
+
+SO, maybe this cannot render a spring. so what? is stiff rendering not good enough for you?
+
+OK, let's take a closer look at stiff rendering.
+
+let's just assume that the user wants to move on a stiff wall. in this case, the controller should try to keep the TCP stay where it is at each time step
+
+but it seems to me that the reference signal is actually position feedback from the encoder. would this work?
+
+then how will I or the controller know if TCP reaches its goal? and actually reference-feedback will probably be 0 all the time
+
+# 20190312
+## too many changes and it worked
+contradict to 20190308, `A0` should be slower for this to work
+
+but this was just the result. the reason behind could be that faster `A0` made faster system, hence the sampling time should be faster to have stability
+
+this was something I didn't know how to solve
+
+chose 0.9 as the damping and it seemed working (this was w/o calculation)
+
+assigned different rising time for all joints. this didn't solve the problem entirely. it's clear that joint 2, 4, and 5 took longer to settle but since they didn't move to much, it didn't really matter
+
+check for closed-loop poles for continuous/discrete time were added and they seemed OK to me
+
+and it should be noted that *indeJointControlDisc.m* was quite different from *indeJointControlCont.m*
+
 # 20190308
 ## had a meeting with Binbin
 tried to refresh my memory with dynamics through virtual work
@@ -177,8 +264,8 @@ simulation log (simulation time = 10 s, R = 1, with *exeInitPosScript.m*):
 
 - 1:10:100, after 3 s, everything was settled, overshoot could be 10%
 - 1:10:10, overshoot was smaller, the rise time was longer, very slow to settle
-- 1:1:10, compared to $1^st$ it's slower, larger overshoot; compare to $2^nd$ it's slower, larger overshoot, maybe faster at settling
-- 1:10:1, compared to $2^nd$ it's a bit slower, less overshoot, slow to recover after overshoot, very slow to settle, over 10 s
+- 1:1:10, compared to $1^{st}$ it's slower, larger overshoot; compare to $2^{nd}$ it's slower, larger overshoot, maybe faster at settling
+- 1:10:1, compared to $2^{nd}$ it's a bit slower, less overshoot, slow to recover after overshoot, very slow to settle, over 10 s
 - 1:100:1, overshoot was even smaller but the recovery from the overshoot was too slow, the rise time was quite fast, after 0.5 s it's almost at the ref with a bit overshoot
 
 lost in all the plots, started to do sweep search

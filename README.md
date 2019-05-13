@@ -1,6 +1,40 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20190513
+although I tried to keep track of everything, the project is still a mess
+
+the scripts and models are getting more and more and they are poorly managed
+
+we have:
+
+- two tasks: step in position, F/T disturbance at TCP
+
+- two time domain: continuous, discrete
+
+- two controller design: PID, LQR
+
+## incomplete work in continuous time
+[x] LQR saturation and anti-windup implementation
+
+[ ] LQR with smaller gain using pole placement
+
+[ ] start and stop at arbitrary places regardless of the linearized OP
+
+according to this, maybe I should drop development in discrete time for a while
+
+## incomplete work in discrete time
+[ ] stable behavior for both controllers in both tasks
+
+[ ] quantization in encoders and check other aspects of discrete design
+
+## added AW to continuous time LQR
+previously, only saturation was implemented with no anti-windup (AW) in *controlDemoLMwI.slx*. I tested some ideas before but failed. the problem was probably b/c the order of integral and gain on the "I" path.
+
+implemented and tested a new version and it's working. with initPos test, the position is smoother. saved as *controlDemoLMwIAW.slx*. copied the controller part to *controlDemoLMwI1D.slx* and saved as *controlDemoLMwIAW1D.slx*.
+
+the difference between *controlDemoLMwI.slx* and *controlDemoLMwI1D.slx* was not so clear at this point. I checked but didn't find why I had 2 models for 2 task, separately. obviously, the disturbance part was done differently but I don't remember the reason. the development of these 2 models would probably be stopped.
+
 # 20190403
 ## OK, I didn't fully understand what Lei said, again
 first of all, this position controller was only used for stiff interaction

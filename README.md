@@ -15,18 +15,18 @@ we have:
 - two controller design: PID, LQR
 
 ## incomplete work in continuous time
-[x] LQR saturation and anti-windup implementation
+- [x] LQR saturation and anti-windup implementation
 
-[ ] LQR with smaller gain using pole placement
+- [ ] LQR with smaller gain using pole placement
 
-[ ] start and stop at arbitrary places regardless of the linearized OP
+- [ ] start and stop at arbitrary places regardless of the linearized OP
 
 according to this, maybe I should drop development in discrete time for a while
 
 ## incomplete work in discrete time
-[ ] stable behavior for both controllers in both tasks
+- [ ] stable behavior for both controllers in both tasks
 
-[ ] quantization in encoders and check other aspects of discrete design
+- [ ] quantization in encoders and check other aspects of discrete design
 
 ## added AW to continuous time LQR
 previously, only saturation was implemented with no anti-windup (AW) in *controlDemoLMwI.slx*. I tested some ideas before but failed. the problem was probably b/c the order of integral and gain on the "I" path.

@@ -1,6 +1,21 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20190514
+## established start, stop, and linop separately
+everything was done with *exeInitPosScript.m* and *controlDemoLMwIAW.slx*
+
+tested with linop is/isn't origin and start/stop different poses
+
+added frame viz representations at origin and TCP. the one at origin (not moving) was darker
+
+test log: `linop = [t_x, t_y, t_z, r_z, r_y, r_x];` 
+
+- to have non-zeros in all joints, we changed `r_z`. with everything else sets to 0, `r_z` could range from - 0.1 to + 0.3 with step of 0.1. - 0.2 and + 0.4 led to strange IK solutions. + 0.5 broke the assembly. 0.3 (rad) is around 17 degree
+
+- after a closer look, it's not the problem of IK but of simulation. if TAU was initiated at, say - 0.3, directly, TAU went into "singularity". however, if it initiated somewhere else and moved to - 0.3, everything was fine, proving IK is correct. 
+TODO: more reliable initiate process or some limits on passive (spherical) joints. initiation is used in static torque computation and start the simulation
+
 # 20190513
 although I tried to keep track of everything, the project is still a mess
 
@@ -19,7 +34,7 @@ we have:
 
 - [ ] LQR with smaller gain using pole placement
 
-- [ ] start and stop at arbitrary places regardless of the linearized OP
+- [x] start and stop at arbitrary places regardless of the linearized OP
 
 according to this, maybe I should drop development in discrete time for a while
 
@@ -27,6 +42,9 @@ according to this, maybe I should drop development in discrete time for a while
 - [ ] stable behavior for both controllers in both tasks
 
 - [ ] quantization in encoders and check other aspects of discrete design
+
+## change the "structure" of the code
+- [ ] implement things as functions instead of scripts with no input args
 
 ## added AW to continuous time LQR
 previously, only saturation was implemented with no anti-windup (AW) in *controlDemoLMwI.slx*. I tested some ideas before but failed. the problem was probably b/c the order of integral and gain on the "I" path.

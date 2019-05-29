@@ -1,6 +1,18 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20190528
+## some findings and understandings before moving poles
+so far, I've been struggle to understand the concept of poles for MIMO
+
+there was actually not too much to say. at one point I thought my way of calculating closed-loop poles for MIMO was wrong. I then used `pole()` and verified that `eig(A - B*K)` was correct, at least in this case.
+
+following Yuchao's suggestion, I also tried `ss2tf()` on my model. it's confirmed that it's indeed an MIMO system. it should be noted that state dimension has little to do with whether the system was MIMO. it's the number of I/Os that matters, as the name implies. and it's also important that they are coupled, interacting. this was also confirmed. otherwise, it's just a bunch of SISO systems written in a matrix form. it can be easily divided into several SISO systems and solved. 
+
+so what did we learn? after the LQR, some of the closed-loop poles are, indeed, quite fast. it could be that my gains/weights in Q matrix were too high but is it possible to move the fast poles to slow w/o losing performance? I think that pole was there for a reason and though that pole was fast, sampling time was not a problem when LQR controller was moved to discrete time with a reasonable sampling time (see [this log](https://github.com/easyt0re/piecewiseLinearModel#added-discrete-time-lqr-lqrdiscm)). I think high gain/fast pole was the consequence of the rise time requirement. that's why it shouldn't be moved.
+
+after reading the log mentioned above, I was a bit confused about the claim that "closed-loop poles were slower than 120 and reasonable". was this a time when the gains/weights were different or for a different test/task (I had different Q matrix for force disturb and position step)?
+
 # 20190514
 ## established start, stop, and linop separately
 everything was done with *exeInitPosScript.m* and *controlDemoLMwIAW.slx*
@@ -35,6 +47,8 @@ we have:
 - [ ] LQR with smaller gain using pole placement
 
 - [x] start and stop at arbitrary places regardless of the linearized OP
+
+- [ ] joint range limits to help with simulation/animation (20190525, see [log 20190514](https://github.com/easyt0re/piecewiseLinearModel#20190514))
 
 according to this, maybe I should drop development in discrete time for a while
 
@@ -733,7 +747,9 @@ the input amplitude were also OK in this case
 changed 100 to 10 would get a settling time of 2 s
 
 ## pole placement tryouts
-the same pole couldn't be picked for more than rank(B) times
+with `place`, the same pole couldn't be picked for more than rank(B) times
+
+`acker` can solve this but `acker` is not applicable when order > 10 (added 20190527)
 
 # 20180523
 ## developed "sensor" for TCP pose

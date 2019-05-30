@@ -1,6 +1,16 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20190530
+## discrete time again with LQRwIAW
+the file was saved from *controlDemoLMwIAW.slx* to *DcontrolDemoLMwIAW.slx* and the old file *DcontrolDemoLMwI.slx* was moved to EOL.
+
+the controller design, as before, was done in *lqrDisc.m*. `lqrd()` was used instead of `lqr()` for continuous time. Note that there is also a `dlqr()` but it's for discrete plant. our plant for now was continuous. 
+
+zero-order hold and quantizer were implemented and, surprisingly, not too much performance drop occurred. the computed control input for some reasons was oscillating all the time. as a result, all joints were moving all the time. this could be something to look into next.
+
+I wonder if I should also put quantizer in the continuous time model. it seems that quantizer doesn't make the system discrete. time can be continuous but there is a smallest difference for the encoder.
+
 # 20190528
 ## some findings and understandings before moving poles
 so far, I've been struggle to understand the concept of poles for MIMO
@@ -55,10 +65,12 @@ according to this, maybe I should drop development in discrete time for a while
 ## incomplete work in discrete time
 - [ ] stable behavior for both controllers in both tasks
 
-- [ ] quantization in encoders and check other aspects of discrete design
+- [x] quantization in encoders and check other aspects of discrete design
 
 ## change the "structure" of the code
 - [ ] implement things as functions instead of scripts with no input args
+
+- [ ] a [Simulink Project](https://se.mathworks.com/help/simulink/ug/create-a-new-project-from-a-folder.html) can be created for better structure of the files maybe. now it's already a mess. see more tutorials [here](https://se.mathworks.com/products/simulink/projects.html). and another blog for setting folders for [Simulink cache and generated code](https://blogs.mathworks.com/simulink/2015/01/16/controlling-the-location-of-the-generated-code-and-temporary-files/) but this is basically using the idea of Project.
 
 ## added AW to continuous time LQR
 previously, only saturation was implemented with no anti-windup (AW) in *controlDemoLMwI.slx*. I tested some ideas before but failed. the problem was probably b/c the order of integral and gain on the "I" path.
@@ -218,7 +230,7 @@ after all of this, individual IJC seemed working but *exeInitPosScript.m* was st
 ~(it should be noted that the saturation for LQR controller in continuous time was not implemented)~
 - [x] controller design in discrete time (*lqrDisc.m*, *indeJointControlDisc.m*)
 - [x] zero order hold in Simulink model (*DcontrolDemoIJ.slx*)
-- [ ] quantization of sensors in Simulink model
+- [x] quantization of sensors in Simulink model
 
 ## played around with sampling time again
 this was done with individual IJC only, no interactions among them

@@ -1,11 +1,44 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20190609
+## on-going problems and thoughts
+the oscillation of the control input should be eliminated and could be caused by these things:
+- the encoder reading was quantized, meaning the error could never be zero, hence, the control input. in this case, we could **either** quantize the reference signal **or** make error less than a resolution zero
+
+- a closer look showed that joint 6 was saturated every now and then. and the target position for joint 6 was not reached in the end, not because of the quantization. was this oscillation in control input similar to that in IJC (see previous logs)? the obvious difference was that this oscillation was quite small and around the correct point. but still, this could be because coordination was bad due to discretization. this could be caused by competing signals in MIMO system
+
+## tryouts and decisions
+- put "dead-zone" on error
+	- the idea was that, when the error is less than 1 resolution, error should be set to zero. a similar function was dead-zone but not really. I ended up writing my own MATLAB Fcn. maybe I did something wrong but, in general, the control performance was better without this module. it could be because it introduced some delay and that's bad. as of now, this was **stopped**.
+
+- quantized reference signal
+	- since the encoder was quantized, I could also quantize reference signal. this introduced some "error" for the controller because the signal before quantization was desired, ideal, while the signal after quantization was "as best as it could get". the before was also a valid solution of IK while the after was probably not. the before was the real OP and the after was a bit away. 
+	- however, after this, `e = r - y` should only be any integer times resolution, which would eventually go to zero.
+	- this was tested out to be a good thing to have. the system would never reach desired pose but that's inevitable because of the encoder.
+
+- increased saturation limits on motors
+	- this seemed to be a must now and at least began to solve most of the problem. changing `Vmax` from 2 to 5 yielded smaller oscillation in control input. and for joint 6, it was just oscillation between the upper and lower bound. from the position output, 5 gave a more steady position at target while 2 gave some oscillation between the target and one notch below (observed in joint 6). combining input and output together, with 2, it seemed that joint 6 was doing "reach but cannot keep". 
+	- like I said, with higher saturation limit, things started to improve a little. but it didn't solve it all. there were still small changes in position output as well as in control input. this could be because my controller was too sensitive to noise and although the current controller was a centralized design, the I/Os were still competing with each other.
+	- obviously, there was a problem in doing this. it cannot be done in the real system. or I have to find a way to justify that we could have this. I was thinking about introducing gear ratios but it would definitely cause more trouble than solve.
+
+## discussion with Yuchao and Yu
+- a closer look with the transfer functions might be helpful to figure out: frequency domain performance, disturbance rejection, positive/negative effects from Is to Os. there would be 6x6 tfs and maybe process them with `zpk(), minreal(), dcgain()`
+- moving poles "blindly" was not as efficient as in SISO design. and sampling frequency should be 10 to 30 times faster than the fastest pole was a recommendation, a rule of thumb, out of experience. it's OK if it's violated. 
+- a simple thing to do was actually check the stability of the discrete time system. if it's stable, then the sampling time was fine. 
+- current state vector was `[q_dot; q; integral_e]`. this could actually be converted to all e-related expressions. it might give a clearer representation and maybe helpful in solving some other future problem (e.g. the reference signal in current problem was a constant instead of a variable). 
+- now the problem was solved with LQR, maybe close to an MPC without constraints with infinite horizon. to continue this path, it could be changed into an MPC with finite horizon and with constraints. 
+- to further this thought, error could be done as an MPC constraint rather than an extra state in the state vector. currently, vanilla LQR had steady-state error, so we "augmented" the state vector with the last bit, adding an integration on error and we hope to control all states. with MPC, maybe we could keep the previous state vector with only velocity and position, then eliminate error with a constraint. 
+- even with vanilla LQR, I didn't really push it to full potential. there were many DOFs but I only used 3,4 numbers to parameterize the controller. H-infinity is another control idea that could be useful in our case. 
+- maybe all this time, I was, again, emphasizing on the wrong task. so far, I tried to do position control with the system. but the ultimate goal was probably disturbance rejection. these two controllers might be different, at least at the level of different weight matrices. this was first shown in [this log](https://github.com/easyt0re/piecewiseLinearModel#tested-with-disturbance) but I didn't think about it too much. in the paper, I only reported the disturbance case with the `[1; 1e6; 1e9]` weight. if I remember it correctly (and ironically enough, this was not documented, after all these logs), this weight was good for disturbance rejection and too high for position control. this could also be why there was jitter when doing position control. maybe it would do better with disturbance. 
+
 # 20190530
 ## discrete time again with LQRwIAW
 the file was saved from *controlDemoLMwIAW.slx* to *DcontrolDemoLMwIAW.slx* and the old file *DcontrolDemoLMwI.slx* was moved to EOL.
 
 the controller design, as before, was done in *lqrDisc.m*. `lqrd()` was used instead of `lqr()` for continuous time. Note that there is also a `dlqr()` but it's for discrete plant. our plant for now was continuous. 
+
+(20190609 as it turned out, in `lqrd()`, `dlqr()` was called probably. so `lqrd()` basically do continuous to discrete first, then called `dlqr()`)
 
 zero-order hold and quantizer were implemented and, surprisingly, not too much performance drop occurred. the computed control input for some reasons was oscillating all the time. as a result, all joints were moving all the time. this could be something to look into next.
 
@@ -36,7 +69,7 @@ test log: `linop = [t_x, t_y, t_z, r_z, r_y, r_x];`
 - to have non-zeros in all joints, we changed `r_z`. with everything else sets to 0, `r_z` could range from - 0.1 to + 0.3 with step of 0.1. - 0.2 and + 0.4 led to strange IK solutions. + 0.5 broke the assembly. 0.3 (rad) is around 17 degree
 
 - after a closer look, it's not the problem of IK but of simulation. if TAU was initiated at, say - 0.3, directly, TAU went into "singularity". however, if it initiated somewhere else and moved to - 0.3, everything was fine, proving IK is correct. 
-TODO: more reliable initiate process or some limits on passive (spherical) joints. initiation is used in static torque computation and start the simulation
+**TODO:** more reliable initiate process or some limits on passive (spherical) joints. initiation is used in static torque computation and start the simulation
 
 # 20190513
 although I tried to keep track of everything, the project is still a mess
@@ -322,7 +355,7 @@ the current problem was that settling time was too long
 
 on the other hand, the close-loop poles calculated by me didn't change too much given all different gains
 
-**TODO:** how to calculate poles for MIMO or what does my calculation mean?
+**TODO:** ~how to calculate poles for MIMO or~ what does my calculation mean?
 
 plotted 10x10 gain from `1e0` to `1e9`, `errGain = 1e3` seemed proper for the rise time, similar or slower than PID, `posGain = 1e0 ~ 1e5` seemed OK. this was mostly with "undershoot" and the settling time was way to long compared to PID
 
@@ -509,7 +542,7 @@ added *controlDemoLMwI1D.slx* and *controlDemoIJ1D.slx* for simulation
 ## modified *plotControlDesign.m* to plot data better
 added script for setting scale in y to be the same across all subplots
 
-the 6 plots were 2x3 now instead of 3x2 (TODO: need to change position maybe later)
+the 6 plots were 2x3 now instead of 3x2 (~**TODO:** need to change position maybe later~)
 
 ## added *simLei.m* to do the simulation Lei suggested
 this might not be useful later but it's good exercise nonetheless
@@ -927,7 +960,7 @@ data-logging was grouped by mux for better naming
 
 there was still a "zero alignment problem" across models
 
-TODO: patch this in later implementations b/c it's not that important
+~**TODO:** patch this in later implementations b/c it's not that important~
 
 ## tried different things to understand and verify the models
 though tried different things with input, the dominant factor seemed to be "average amplitude" if under same amount of simulation time
@@ -1100,7 +1133,7 @@ so there would be 4 files with *simTAU* as a prefix and the last 3 letters speci
 
 all the other files should be named accordingly (JAD: joint angle driven)
 
-**TODO:** the sensor output had not been defined in this file yet
+~**TODO:** the sensor output had not been defined in this file yet~
 
 ## saved *simTAUJAD.slx* as *simTAUJTD.slx* to prioritize the model development for linmod()
 the model wanted for linmod() was JTD: joint torque driven
@@ -1136,7 +1169,7 @@ this was implemented so that, without the TCP platform, the elbows for limb 1 an
 
 hookOffset was currently set to zero
 
-TODO: figure out on what level this hookOffset will take effect
+**TODO:** figure out on what level this hookOffset will take effect
 
 ## fixed the problem with the discrete input in *simTAUJointDriven.slx*
 *simTAUJointDriven.slx* was added to drive the system from joint angles

@@ -1,5 +1,37 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20190701
+## generated some animations
+for the ICCA presentation, Lei suggested to have some animation. I generated animation with the Simscape 3D model. currently, the motion was too small to observe. I tried to also animate the plots. that didn't work out and I gave up. I wanted to do something like plots in ADAMS, synced and changing with the simulation. I also learned how to record screen or a window in Win10. 
+
+added frame viz representations (markers) to *controlDemoIJ1D.slx* and *controlDemoLMwIAW1D.slx*. this was for the animation to show the deviation at TCP clearer. for the marker, the ball was with a radius of 2 mm and the axis was with a radius of 1 mm and a length of 10 mm, just for reference.
+
+## again, note the setup for the simulations
+for ICCA paper, `posGain, errGain = (1e6, 1e9)` for MIMO and `Trise = 0.05; Mp = 2/100;` for SISO. the disturbance was 5 N and the simulation was 0.5 s. this resulted in the plots in the paper and the deviation caused by the disturbance was not that obvious, meaning it's hard to tell from the simulation animation. we could try with the same params but 20 N and see what would happen.
+
+for discrete time extension, because of the encoder resolution, a new set of params needed to be found. as logged previously, `posGain, errGain = (1e3, 1e7)` for MIMO and `Trise = 0.1; Mp = 5/100;` for SISO. the disturbance was 20 N and the simulation was 1 s. this yielded some proper deviation for the encoders to detect. 
+
+sometimes it's quite confusing and tedious to do these book keepings. this was why a better structure of the code was needed.
+
+# 20190613
+## modified *controlDemoIJ.slx* reference signal part
+I separated start, stop, and linop [before](https://github.com/easyt0re/piecewiseLinearModel#established-start-stop-and-linop-separately) for LQR controller but I didn't do it for IJC b/c IJC was having problems maybe. should have left a TODO flag. anyway, this was done now. not sure if this would work 100% but it might. I had problems wrapping my head around this "linearized" PID controller last time and this time still.
+
+the reference signal was done better with one step using the vector instead of 6 steps and a mux. and the meaning was clearer. it seemed that the reference signal should always be from zero to desired position, which was actually not an absolute displacement but a difference, the difference between target and initial position.
+
+# 20190612
+something is always missing here. so the point of the log is only to have less missing things.
+## tried to structure the code a bit more
+started *exeScript.m* from *exeInitPosScript.m* and failed
+
+tried to do it like Python `python script.py --option=some_options` but didn't find MATLAB's support for this. tried to do it like a MATLAB function with optional input arguments. this was also unsuccessful b/c there were some problems with which workspace (scope, function call and level of workspaces) to use when call `sim()`. there was an option `'SrcWorkspace','current'` that I could use but then the question became where were the numbers that were "saved to workspace"? this could be revisited but not the focus of the current study. 
+
+## tried to sweep for good Q matrix again
+for some reasons, previous logs didn't have everything I wished to record. there was supposed to be one set of weights for position control and another for disturbance rejection. the set for disturbance rejection was not explicitly recorded in the log but I guess it's the one we were using this whole time: `posGain, errGain = (1e6, 1e9)`
+
+this time it was for a different reason: we did the discretization of the system and I should be writing about this in a new journal paper. previously, with continuous time, I didn't implement encoder (quantization). so with the previous weights, the error was too small (too good) for the encoder to pick up. I might have a note on this, for previous simulation results, it was too good. there was no observable movement on the TCP when it was disturbed by a force. basically, it's not realistic. to achieve reasonable and good performance, I need to find a set of weights that, under a disturbance (now it's 20 N, previously it's 5 N), yielded a deviation of 5 times the resolution (0.0077). so maybe something around 0.01 rad. and it also had to recover fast. 
+
+these sets were fine with me: `posGain, errGain = (1e3, 1e6), (1e3, 1e7), (1e4, 1e6), (1e4, 1e7)`, but I chose `posGain, errGain = (1e3, 1e7)`. I also did a "finer" sweep within this 2x2 region but didn't find anything interesting. with these weights, it showed some "proper" performance that we could work with.
 
 # 20190609
 ## on-going problems and thoughts
@@ -62,7 +94,7 @@ everything was done with *exeInitPosScript.m* and *controlDemoLMwIAW.slx*
 
 tested with linop is/isn't origin and start/stop different poses
 
-added frame viz representations at origin and TCP. the one at origin (not moving) was darker
+added frame viz representations (markers) at origin and TCP. the one at origin (not moving) was darker
 
 test log: `linop = [t_x, t_y, t_z, r_z, r_y, r_x];` 
 

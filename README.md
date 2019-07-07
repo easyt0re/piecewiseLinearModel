@@ -1,5 +1,20 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20190707
+## revisited *simTAUJTDlinmod12.slx*
+*simTAUJTDlinmod12.slx* was the control plant model. it had the I/O setup and nothing else. it's also why, in linearization, this file was used. saved a copy and named it *tauControlPlant.slx* to test new things on it and left the old file untouched. I followed the video about [model trimming and linearization](https://se.mathworks.com/videos/trim-linearization-and-control-design-for-an-aircraft-68880.html) but all the functions mentioned seemed to be already implemented in the code. the tutorial was more of a GUI tool. and also the last part of the video was only good for SISO. so the development on *tauControlPlant.slx* was stopped. but I didn't remove it. maybe I will circle back to it and at least this could be a copy of the IO system
+
+## much to read and learn from MATLAB main page
+I started with the "wrong" keyword - ["adaptive MPC"](https://se.mathworks.com/help/mpc/ug/gain-scheduling-mpc-control-of-nonlinear-chemical-reactor.html) and gain-scheduled MPC was also kinda adaptive I guess. apparently, there would be 4 branches to solve this. the first split was whether or not a linear plant model could be obtained online. if yes, successive linearization or online model estimation could be used with adaptive MPC. if no, you could do gain scheduling (GC) or linear parameter varying (LPV). maybe the words here were not accurate but everything was on the page. 
+
+I assumed that, for our case, linear plant couldn't be obtained online. the being said, there was no specific reason to use MPC. I was only looking for a method to switch controllers when needed. still, MPC could be interesting as I noted in my previous discussions with other people. Lei might have said something about dSPACE cannot do MPC. 
+
+at this point, [GC](https://se.mathworks.com/help/control/gain-scheduled-controller-tuning.html) and [LPV](https://se.mathworks.com/help/control/ug/linear-parameter-varying-models.html) both looked promising. the only difference that mattered to me would be the ease of implementation. 
+
+along this path, I actually found out how to do different controllers in the same *.slx* file. the block is called "variant subsystem". it has a "flag" to switch from one to another. it could be useful to reduce the number of the files. I could switch controllers as well as models (position/disturbance).
+
+just too many things I don't know about MATLAB and SIMULINK. also found out about this (signal) selector block. currently I have no use for it but I think it could be useful. 
+
 # 20190701
 ## generated some animations
 for the ICCA presentation, Lei suggested to have some animation. I generated animation with the Simscape 3D model. currently, the motion was too small to observe. I tried to also animate the plots. that didn't work out and I gave up. I wanted to do something like plots in ADAMS, synced and changing with the simulation. I also learned how to record screen or a window in Win10. 

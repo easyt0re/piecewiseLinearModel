@@ -1,5 +1,23 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20190708
+the tense of this log is always a pain to me
+## rethink the IOs of the TAU model
+this is actually from yesterday. through yesterday's learning, at one point, I felt like what they did in the tutorial was to define disturbance as input but can be "turned off" as "uncontrollable" input. in our case, we could define the F/T on TCP "unmeasured disturbances" with white noise by default and the joint torque "manipulated variables" if I understand it correctly. like I said, there are too many options and data structures I don't know in MATLAB. then the "input" is rather general, as in "all the signals that go into the system" and specifically defined later for different analysis, like disturbance rejection. 
+
+## further study of LPV
+after reading examples of LPV, it seemed that it's good to approximate the plant. it's basically a stack of state-space models and based on a condition, it would switch among these models. my current understanding was that it would be hard to implement controllers this way. anti-windup and saturation made it not a simple ss model. so the current idea was to go back to GC and GC in this case was just gain look-up tables with a condition. not too much would change in the structure or the implementation of the controller. still, these example codes were good examples to implement things. 
+
+## modified *simTAUcheckOTorq.slx* only to hide animation
+all this time, the sole purpose of this simulation model was to calculate the motor torque to keep the mechanism at a certain pose, the compensation for OP in motor torque. showing the animation was unnecessary and from now on, I might use this in for loop for multiple OPs.
+
+there could be some "interfacing" problems with all my codes and models. here, in this file specifically, in each joint, the position state target was `init_joint(i)`, which was the initial value I think, and for each joint, the input position signal was `runtime_joints(i)`. they all had "sign-flip" in the model, so no flip was needed.
+
+## added *genMultiOPs.m* to generate things for multiple OPs
+at this point, the purpose of this script was undefined. it could be to generate control plant (for later control design) or controller directly. this was the first version of the code and it seemed working. currently, this only divided in position, not orientation. the extension should be easy. 
+
+this was still the model with auto-generated states. next steps should be, as before, change to desired states, augment states, design controller. this should be done in a parallel way to speed up instead of a for loop. should be doable. 
+
 # 20190707
 ## revisited *simTAUJTDlinmod12.slx*
 *simTAUJTDlinmod12.slx* was the control plant model. it had the I/O setup and nothing else. it's also why, in linearization, this file was used. saved a copy and named it *tauControlPlant.slx* to test new things on it and left the old file untouched. I followed the video about [model trimming and linearization](https://se.mathworks.com/videos/trim-linearization-and-control-design-for-an-aircraft-68880.html) but all the functions mentioned seemed to be already implemented in the code. the tutorial was more of a GUI tool. and also the last part of the video was only good for SISO. so the development on *tauControlPlant.slx* was stopped. but I didn't remove it. maybe I will circle back to it and at least this could be a copy of the IO system

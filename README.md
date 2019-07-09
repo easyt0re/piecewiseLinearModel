@@ -1,5 +1,19 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20190709
+## speed things up with parallel stuff
+for *genMultiOPs.m*, the outer for-loop for OPs could be [`parfor`](https://se.mathworks.com/help/parallel-computing/parfor.html). there's also [`parsim`](https://se.mathworks.com/help/simulink/ug/example-of-parallel-simulations-workflow.html) to run simulation in parallel. check the [function page](https://se.mathworks.com/help/simulink/slref/parsim.html) for more info. these could be used in other processes as well, like *lqrSweep.m*.
+
+## section 1: calculate motor torque compensation
+so, it's tested that you cannot use `sim()` in `parfor`. `parsim` was suggested. section 1 was done with `parsim`. my work laptop could only have 2 things (workers) in parallel. to use`parsim`, define `SimulationInput` for each simulation first, then, run the simulation using `parsim` with the stacked "options".
+
+here again, I ran into the problem of which workspace could be accessible during a `parsim` call. it seemed that `parsim` couldn't read global workspace that's populated by the "main level" scripts. and I learned to use DataDictionary (\*.sldd files). I ran *simTAUInit.m* which contained all the "design params" for TAU and saved everything in *TAUdesign.sldd*. I linked it to *simTAUcheckOTorq.slx* (used in section 1 simulation) and *tauControlPlant.slx* (used in section 2 to generate linearizing options instead of *simTAUJTDlinmod12.slx* b/c I didn't want to modify the latter file). after this, somehow, `parsim` could see these values. it makes sense actually. for things to work in parallel, you have to "clone" workspace and you have to specify it. 
+
+## section 2: specify linearization option
+tried to write this part with `parfor` but failed. ran into the "accessible workspace" problem again and tried to solve it with linking DataDict to *tauControlPlant.slx*. went past this problem but yielded an error I couldn't find the solution. it's still related to this `parfor` implementation. currently, I went back to normal for-loop instead. maybe I should get rid of the inside for-loop. it's just a way to have less lines of code. 
+
+other than that, section 1 and 2 could run and finish w/o error. I couldn't verify if the values were correct. 
+
 # 20190708
 the tense of this log is always a pain to me
 ## rethink the IOs of the TAU model
@@ -9,14 +23,14 @@ this is actually from yesterday. through yesterday's learning, at one point, I f
 after reading examples of LPV, it seemed that it's good to approximate the plant. it's basically a stack of state-space models and based on a condition, it would switch among these models. my current understanding was that it would be hard to implement controllers this way. anti-windup and saturation made it not a simple ss model. so the current idea was to go back to GC and GC in this case was just gain look-up tables with a condition. not too much would change in the structure or the implementation of the controller. still, these example codes were good examples to implement things. 
 
 ## modified *simTAUcheckOTorq.slx* only to hide animation
-all this time, the sole purpose of this simulation model was to calculate the motor torque to keep the mechanism at a certain pose, the compensation for OP in motor torque. showing the animation was unnecessary and from now on, I might use this in for loop for multiple OPs.
+all this time, the sole purpose of this simulation model was to calculate the motor torque to keep the mechanism at a certain pose, the compensation for OP in motor torque. showing the animation was unnecessary and from now on, I might use this in for-loop for multiple OPs.
 
 there could be some "interfacing" problems with all my codes and models. here, in this file specifically, in each joint, the position state target was `init_joint(i)`, which was the initial value I think, and for each joint, the input position signal was `runtime_joints(i)`. they all had "sign-flip" in the model, so no flip was needed.
 
 ## added *genMultiOPs.m* to generate things for multiple OPs
 at this point, the purpose of this script was undefined. it could be to generate control plant (for later control design) or controller directly. this was the first version of the code and it seemed working. currently, this only divided in position, not orientation. the extension should be easy. 
 
-this was still the model with auto-generated states. next steps should be, as before, change to desired states, augment states, design controller. this should be done in a parallel way to speed up instead of a for loop. should be doable. 
+this was still the model with auto-generated states. next steps should be, as before, change to desired states, augment states, design controller. this should be done in a parallel way to speed up instead of a for-loop. should be doable. 
 
 # 20190707
 ## revisited *simTAUJTDlinmod12.slx*

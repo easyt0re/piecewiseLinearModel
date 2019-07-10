@@ -1,5 +1,23 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20190710
+## section 3: change to desired states, augment, and design controller
+surprisingly, this was done quite easily. the code was mostly from *linScript.m*. at this point, everything saved was still 27 (or 27x1) instead of 3x3x3. I later realized that this was only the continuous time part. so this file was still unfinished. another thing I realized was that it's harder to debug `parfor`. whatever was wrong, the flag was always at the `parfor` line though the error was the real error. saved the designed controllers as *lqrGainwI_3x3x3.mat* b/c in the end, *genMultiOPs.m* should be run offline and the controllers should be loaded for real-time usage.
+
+## the start of all controllers in one file
+saved *controlDemoLMwIAW1D.slx* as *disturbTest.slx* and successfully wrapped the controller part into a variant subsystem. now, controller (MIMO/SISO, later continuous/discrete maybe) could be specified with a flag `CTRLTYPE`. tested with MIMO continuous time and it's working. need to do the same for the rest. the result of each run could be saved in a `SimulationOutput` structure for plots later. 
+
+many more things could be done but I should follow one through. the rest could be copy-and-paste then.
+- [ ] copy paste all kinds of controller here (no rush, multiple OP first)
+
+- [ ] maybe "disturb" and "position" could also be in one file
+
+- [ ] maybe continuous and discrete controller should only have differences in values but the structures the same, meaning switching scripts for calculation instead of switching controller subsystems.
+
+- [ ] maybe rewrite how things are loaded and saved, including plotting scripts. eventually, all the "exe" scripts would be rewritten.
+
+- [ ] think about how to do the simulation for multiple OPs
+
 # 20190709
 ## speed things up with parallel stuff
 for *genMultiOPs.m*, the outer for-loop for OPs could be [`parfor`](https://se.mathworks.com/help/parallel-computing/parfor.html). there's also [`parsim`](https://se.mathworks.com/help/simulink/ug/example-of-parallel-simulations-workflow.html) to run simulation in parallel. check the [function page](https://se.mathworks.com/help/simulink/slref/parsim.html) for more info. these could be used in other processes as well, like *lqrSweep.m*.
@@ -30,7 +48,7 @@ there could be some "interfacing" problems with all my codes and models. here, i
 ## added *genMultiOPs.m* to generate things for multiple OPs
 at this point, the purpose of this script was undefined. it could be to generate control plant (for later control design) or controller directly. this was the first version of the code and it seemed working. currently, this only divided in position, not orientation. the extension should be easy. 
 
-this was still the model with auto-generated states. next steps should be, as before, change to desired states, augment states, design controller. this should be done in a parallel way to speed up instead of a for-loop. should be doable. 
+this was still the model with auto-generated states. ~next steps should be, as before, change to desired states, augment states, design controller.~ this should be done in a parallel way to speed up instead of a for-loop. should be doable. 
 
 # 20190707
 ## revisited *simTAUJTDlinmod12.slx*

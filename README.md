@@ -1,5 +1,27 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20190724
+## what's needed for a given OP
+though the method is called gain scheduling, the things changing for different cases are more than just control gains. that's why *genMultiOPs.m* was rerun and the "offset" was saved. 
+
+for each OP, we needed: control gains (`Ki` and `Kc`), position offset (joint angles at OP), velocity offset (which was 0 in this case), and torque offset (joint torques from the simulation at OP). all of these needed to be changed/scheduled for different OPs. although these were specified in `opspec`, they were not implemented in simulink models.
+
+there was also an initialization conditions. 
+
+these all went back to preparation before running *disturbTest.slx*. I should say that previous implementations from me were messy. "initialization code" was all over the place instead of being in one place and run before everything. this should be a **TODO** and, later, a practice. all "exe" scripts were subjects to changes.
+
+## further development of MIMO MOP in *disturbTest.slx*
+an MIMO MOP (multiple-OP) controller was added in the controller variant subsystem. the `Ki` and `Kc` gains were scheduled based on position of TCP. position of TCP was currently obtained directly because it's a simulation. otherwise, in real implementation, F.K. or other stuff should be used. **WIP**
+
+## misc
+- added *sdisp.m* for display messages with a flag
+
+- added some printing commands in *genMultiOPs.m* to know the progress
+
+- saved offset from *genMultiOPs.m* but it's actually no use. manually saved again
+
+- tried to do `parfor` instead of `for` again and failed again
+
 # 20190712
 this was a bad day, idk. my brain stopped.
 ## built the module to look up control gains, sorta

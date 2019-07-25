@@ -1,5 +1,42 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20190725
+this was a "parallel" or "asynchronous" day in the sense that I had mutiple "threads" and in the end I had to tie everything together.
+## revisited *exeScript.m* for a clear script for *disturbTest.slx*
+*exeScript.m* used to be an attempt to run simulation as a function and parameters were changed through different input arguments. that didn't work out. I settled with a script with some flags in the front. as mentioned yesterday and also previously, I also needed a good practice to do everything in a good order and clearly. I had scripts for previous simulation, this script now served as a initialization script for *disturbTest.slx*. there will be major revisions along the way but for now let's start somewhere. the lesson learned was that initial conditions for the simulation should be in the back, just before simulation, and in one "section" that I could quickly change and run just that.
+
+this was also the time when I found out that I didn't do the separate of start, stop, and linop for disturbance rejection. previous implementations were for position control task, so to speak. moved back to *controlDemoLMwIAW1D.slx* to develop and verify this first and now it's done.
+
+modified the reference signal for both MIMO/MIMOMOP controllers. additionally, for MIMOMOP, the ref signal was further changed. ref signal also needed joint angle offset compensation. in MIMO it was done in one `constant` block with an expression. in MIMOMOP I had to separate this and feed in the scheduled offset. this implemetation was actually clearer in the way that it showed the ref signal also had to have some compensation. considered this an optional **TODO**.
+
+## revisited all "exe" scripts for separate of 3 points
+when I was rewriting *exeScript.m*, I realized `stopp_pose` was never used in the model. I thought it was due to copy-paste and I got some extra no-use code. in fact, I probably didn't really work on this for disturbance rejection. and b/c the initialization code was all over the place, I started to move things around.
+
+turned out *exeDisturbScript.m* was the only one that needed changing. the missing code that used to be in *linScriptJS.m* was pasted in and the order was changed a little for everything to work. the 2 simulink models in the script were also updated based on their position control counterparts (mostly the ref signal part). now *exeDisturbScript.m* and *exeInitPosScript.m* could be run successfully directly. I imagined that all "exe" script should look more like *exeDisturbScript.m*
+
+another thing I realized was that I didn't really do MOP for SISO. the "linearized model" for SISO was obtained by [locking joints and measuring/calculating moment of inertia](https://github.com/easyt0re/piecewiseLinearModel#20180822). it was quite a manual process so I didn't really further develop it to work with MOP. so for SISO/IJC, the `linop_pose` was always the origin. this could be an optional **TODO** but it's not that important currently.
+
+## the performance of MIMO in disturbance task
+with *exeDisturbScript.m* working with different "position pressing the wall", I tried a few points. everything was OK for SISO. however, for MIMO: with offset along x axis, TAU would be pressed into singularity; with y offset, it was OK; with z offset, although it didn't make sense (the wall was `z = 0`), it also got initialized in singularity with positive offset. all the singularities seemed to be related to simulation. with the working cases, MIMO was worse than SISO. this went back to the fact that the current gains were obtained with position tests, which should give MIMO bad performance in disturb tests.
+
+thus, **TODO:** 
+- [ ] modification to *genMultiOPs.m* b/c controller design part should be the one part that could be modified and run many times, while the "static" part should be run only once and saved.
+
+- [ ] find proper gains for disturb tests. maybe optional
+
+- [ ] \(in general,) finalize the code currently in *playgound.m*. the lookup table was only implemented for `X` both in code and simulink
+
+another thing was, I was talking about MIMO vs. SISO here in disturbance at different position. I didn't talk about or try MIMO vs. MIMOMOP. definitely **TODO** and one more thing remained was how to really "see" "scheduling" in the simulation.
+
+## misc
+`Goto` and `From` block in simulink had some "scope" issue. when in different levels, tag visibility of `Goto` block needed to be changed. and an additional `Goto Tag Visibility` block was needed for "scoped". but this didn't work. used "global" instead.
+
+`Product` block had a "order" for ports when used to do "matrix multiplication". I checked the dimension of signals to make sure this was correct. otherwise, it wouldn't throw an error but do some weird reshaping instead if it's possible.
+
+cut (commented out) initialization code in *linScriptJS.m* and pasted it in all "exe" scripts if needed, as a streamline step (hmm... I actually had it already in *exeInitPosScript.m*. I wondered why I didn't also do this with the others)
+
+moved the initial condition code to just before running the simulation but `linop_pose` had to be before linearization.
+
 # 20190724
 ## what's needed for a given OP
 though the method is called gain scheduling, the things changing for different cases are more than just control gains. that's why *genMultiOPs.m* was rerun and the "offset" was saved. 
@@ -114,6 +151,8 @@ sometimes it's quite confusing and tedious to do these book keepings. this was w
 I separated start, stop, and linop [before](https://github.com/easyt0re/piecewiseLinearModel#established-start-stop-and-linop-separately) for LQR controller but I didn't do it for IJC b/c IJC was having problems maybe. should have left a TODO flag. anyway, this was done now. not sure if this would work 100% but it might. I had problems wrapping my head around this "linearized" PID controller last time and this time still.
 
 the reference signal was done better with one step using the vector instead of 6 steps and a mux. and the meaning was clearer. it seemed that the reference signal should always be from zero to desired position, which was actually not an absolute displacement but a difference, the difference between target and initial position.
+
+(20190725) a part of this "separate" (the 3 points) code was also copy-pasted into *exeDisturbScript.m*. but I probably didn't really work on the simulink model to make this separation work. 
 
 # 20190612
 something is always missing here. so the point of the log is only to have less missing things.
@@ -774,6 +813,7 @@ if use lqr design, similar performance in position could be achieved with Q = [1
 all model could be clipped at simulation time = 1 s for details
 
 # 20180822
+(20190725) this was actually how I "linearized" IJC to obtain control plant
 ## started to "measure/estimate" moment of inertia w.r.t each joint
 the idea was to, first fix every joint and turn the mechanism into a structure, and then spin the structure at a constant acceleration
 

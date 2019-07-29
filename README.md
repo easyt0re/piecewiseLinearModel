@@ -1,13 +1,27 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20190729
+## plot things with a script
+with `sim()`, the data could be accessed as signal logging (enable logging) or output signal (with `Out` port). tried output but ended with signal logging. plot time series (a structure/class) directly. 
+
+I was also thinking the usage of the *exeScript.m*. added prompt for user input in choosing the controller type with a default answer. it's possible to actually only have this script (*exeScript.m*) and this model (*disturbTest.slx*).
+
+## solidified *playground.m* into *multiOPsGS.m*
+the script was for multiple OPs gain scheduling purposes. the most important part was to initialize lookup tables and load in saved gains and offsets for GS. used to only have lookup table initialization for $X$. now added $Y$ and $Z$ but not used. in the simulink model, it's still only $X$. the simulation would work correctly as long as they were all "divided" in the same way. could be a **TODO** here.
+
+## MIMOMOP work in progress (WIP)
+currently, TCP position was fed back as the GS conditions. noted that the position from the simulation was in meters. also noted that most of the time I used millimeter (in lookup tables, design params. check the number to determine the unit. it should be quite obvious). 
+
+currently, the gain was "switching" instead of "scheduling" b/c I hadn't found a way to properly run the simulation yet. but the "switching" seemed correct. the performance, at least from the joint angle plots, was some worse some better. this brought back the discussion how to evaluate. maybe by just looking at joint angle plots was not enough. from the animation, it seemed better. 
+
 # 20190725
-this was a "parallel" or "asynchronous" day in the sense that I had mutiple "threads" and in the end I had to tie everything together.
+this was a "parallel" or "asynchronous" day in the sense that I had multiple "threads" and in the end I had to tie everything together.
 ## revisited *exeScript.m* for a clear script for *disturbTest.slx*
 *exeScript.m* used to be an attempt to run simulation as a function and parameters were changed through different input arguments. that didn't work out. I settled with a script with some flags in the front. as mentioned yesterday and also previously, I also needed a good practice to do everything in a good order and clearly. I had scripts for previous simulation, this script now served as a initialization script for *disturbTest.slx*. there will be major revisions along the way but for now let's start somewhere. the lesson learned was that initial conditions for the simulation should be in the back, just before simulation, and in one "section" that I could quickly change and run just that.
 
 this was also the time when I found out that I didn't do the separate of start, stop, and linop for disturbance rejection. previous implementations were for position control task, so to speak. moved back to *controlDemoLMwIAW1D.slx* to develop and verify this first and now it's done.
 
-modified the reference signal for both MIMO/MIMOMOP controllers. additionally, for MIMOMOP, the ref signal was further changed. ref signal also needed joint angle offset compensation. in MIMO it was done in one `constant` block with an expression. in MIMOMOP I had to separate this and feed in the scheduled offset. this implemetation was actually clearer in the way that it showed the ref signal also had to have some compensation. considered this an optional **TODO**.
+modified the reference signal for both MIMO/MIMOMOP controllers. additionally, for MIMOMOP, the ref signal was further changed. ref signal also needed joint angle offset compensation. in MIMO it was done in one `constant` block with an expression. in MIMOMOP I had to separate this and feed in the scheduled offset. this implementation was actually clearer in the way that it showed the ref signal also had to have some compensation. considered this an optional **TODO**.
 
 ## revisited all "exe" scripts for separate of 3 points
 when I was rewriting *exeScript.m*, I realized `stopp_pose` was never used in the model. I thought it was due to copy-paste and I got some extra no-use code. in fact, I probably didn't really work on this for disturbance rejection. and b/c the initialization code was all over the place, I started to move things around.

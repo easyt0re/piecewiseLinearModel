@@ -1,5 +1,21 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20190730
+## further tests with MIMOMOP vs. MIMO
+the overall conclusion still holds: the first is not superior to the latter from a simple look at the joint angle plots. and it should be no surprise that improvements vary from point to point. the closer to the OP, the better. where the OPs were for MOP and where the user pushed were important to the performance. for example, if we picked OP and pressing point both at the edge of the workspace, for MOP it would be perfect (right on OP) but for MIMO it would be the furthest away from OP. of course, in this case, MOP would be a lot better than MIMO. is this a good pick? how do we justify that? if we picked the center region, no doubt the two performed the same b/c the controllers were identical. maybe I should do a "grid query" of the whole space, or actually the whole wall surface, and then have some evaluation criteria to decide which is better and how much better it is. this probably means a lot of simulations. could borrow a better PC (more cores, or at least threads) to do this. 
+
+to this end, maybe next step would be to change the *genMultiOPs.m* and generate gains and offsets with other params. there could also be some "hand shake" (passing the params through) between *genMultiOPs.m* and *multiOPsGS.m* either by save/load *.mat* file or straight up use the same variables. speaking of which, there was also a **TODO** related to separate "static" part from the controller design part from before.
+
+## ran MIMO simulation successfully in *disturbTest.slx* with *exeScript.m*
+this was one step closer to "one script rules all". copied some lines over from *exeDisturbScript.m*. 
+
+the plotting part of the script was moved out and saved as a new script, *pltScript.m*. this was definitely WIP b/c right now manual check was needed for everything to work.
+
+## misc
+- added frame viz representations (markers) for start pose (actually, position) to *disturbTest.slx*. to differentiate, the origin was green. the stop pose could be red but not implemented yet.
+
+- in mechanics explorers, chose view/layout/four standard views to have a better look at the simulation from all angles.
+
 # 20190729
 ## plot things with a script
 with `sim()`, the data could be accessed as signal logging (enable logging) or output signal (with `Out` port). tried output but ended with signal logging. plot time series (a structure/class) directly. 
@@ -558,7 +574,7 @@ simulation log (simulation time = 10 s, R = 1, with *exeInitPosScript.m*):
 - 1:10:10, overshoot was smaller, the rise time was longer, very slow to settle
 - 1:1:10, compared to $1^{st}$ it's slower, larger overshoot; compare to $2^{nd}$ it's slower, larger overshoot, maybe faster at settling
 - 1:10:1, compared to $2^{nd}$ it's a bit slower, less overshoot, slow to recover after overshoot, very slow to settle, over 10 s
-- 1:100:1, overshoot was even smaller but the recovery from the overshoot was too slow, the rise time was quite fast, after 0.5 s it's almost at the ref with a bit overshoot
+- 1\:100\:1, overshoot was even smaller but the recovery from the overshoot was too slow, the rise time was quite fast, after 0.5 s it's almost at the ref with a bit overshoot
 
 lost in all the plots, started to do sweep search
 

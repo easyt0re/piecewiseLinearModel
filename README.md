@@ -1,5 +1,25 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20190731 - 0801
+was I too deep into implementation that I forgot about research?
+## reexamined the performance MIMOMOP vs. MIMO
+last entry, I talked about, from a evaluation stand point, how things other than the controller itself could after the "score". most previous tests were run under `limTraX = 10`. I rearranged things and generated a new set with 25. this was chosen b/c 25 was reachable and could be currently considered the edge of the workspace. also, TCP could be far away from the origin (OP for MIMO) and close to outer OPs for MOP. this should be the area where MOP prevails.
+
+I ran tests with offset to origin equaled to 25. MOP broke only at `y = - 25`. MIMO only held at `y = 25`. by "broke", I meant TAU went into singularity. this could be b/c the controller gain was "too soft". 
+
+I also thought about adding limits to the joints. this was something on hold indefinitely. my simulation went into singularity all the time. first of all, it should not. secondly, this limits actually act as "dynamic constraints (exert force like a spring)" when reached. at least THIS implementation is not what we look for. it's also going to introduce forces that are never going to be there. instead, it should be a solver's problem,  not a constraint. it should work like a feasible range for a certain variable. when the solver solves the dynamic problem and if there are multiple solutions, the solver should pick the one that's "feasible". that's closer to the implementation we need. 
+
+## misc
+- used to change `strcmp()` to `strcmpi()` to be case insensitive. then realized it's still needed for choosing the controller and changed back. changed to number instead. 
+
+- modified some of the names of the variables used in *genMultiOPs.m*, what to be saved, and save command in the script. apart from offsets and gains, control plant before controller design was also saved, considered as "static". in this way, when design new controllers, only design code was needed. control plant could be loaded directly.
+
+- the params used in *multiOPsGS.m* were also saved from *genMultiOPs.m* so that they could match.
+
+- added "fast mode" to run *exeScript.m*. when it's not the first time to run and the controller gain was already designed/loaded, no need to run those again. but failed. didn't really find a good logic to do this. manually for now.
+
+- moved *plotAnimation.m* to EOL (stopDevel). it was for developing some plot animation similar to what we had in ADAMS simulation. the plot would change w.r.t time.
+
 # 20190730
 ## further tests with MIMOMOP vs. MIMO
 the overall conclusion still holds: the first is not superior to the latter from a simple look at the joint angle plots. and it should be no surprise that improvements vary from point to point. the closer to the OP, the better. where the OPs were for MOP and where the user pushed were important to the performance. for example, if we picked OP and pressing point both at the edge of the workspace, for MOP it would be perfect (right on OP) but for MIMO it would be the furthest away from OP. of course, in this case, MOP would be a lot better than MIMO. is this a good pick? how do we justify that? if we picked the center region, no doubt the two performed the same b/c the controllers were identical. maybe I should do a "grid query" of the whole space, or actually the whole wall surface, and then have some evaluation criteria to decide which is better and how much better it is. this probably means a lot of simulations. could borrow a better PC (more cores, or at least threads) to do this. 

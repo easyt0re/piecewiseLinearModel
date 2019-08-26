@@ -1,5 +1,66 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20190824
+lost again in my own files, both as in "I don't know which file is for what" and in "I don't know what I should do next"
+## revisit discrete time implementation with IJC
+at least from my previous logs, I didn't see anything about doing IJC with discrete time. 
+*DcontrolDemoIJ1D.slx* was saved based on *controlDemoIJ1D.slx*. 
+added zero-order hold and quantizer from the MIMO counterpart. 
+to my surprise, there was never really a file for discrete IJC for disturbance. 
+and the result was that it didn't work. 
+last time I did comparison between time domains, I probably only did MIMO. 
+is "SISO is not working" good enough? I don't know. I also don't know why it's not working. 
+
+## recap about meeting 0821
+the deadlines for 4 journals (LOL) were set at: Sept 22, Nov 15, Mar 1, and May 1. good luck.
+
+maybe I'm just stupid but Lei finally gave me the correct way to do the controller. it's a position controller. so far, the Q and R matrix made sure that the difference (error) between desired position (ref) and actual position went to 0 ASAP. this made me feel like our controller was rendering a "fix" not a wall, given the wall constraint should be unilateral, a point-surface contact. Lei said I should only control the motion towards the wall a few times now but I never got it. what he meant was the "to-wall" direction error went to 0 and the rest left uncontrolled. in Q matrix, this means large gain in z coordinates and 0 in others, if wall is at `z = 0`. in my defense, this was the first time he explicitly said that.
+
+this could work but it changes things. 
+
+first, it means that our controller is more like a haptic renderer instead of a low level controller.
+previously, I imagined the controller to work after collision detection.
+the collision position was the ref signal and the controller kept the TCP there. no query about the environment was asked.
+the "switching" of the controller/model was more about the dynamics of the device (it's slightly different in different regions if we pre-load the linearized model).
+but for this new idea to work properly, the controller needs to know the surface normal. 
+when collision is detected, the controller has to ask, what's the current surface normal for the collision.
+then the corresponding/correct "controller" so to speak is used. 
+this means the "controller" is based on the TCP position as well as the surface normal. 
+the TCP position determines the control plant, the linearized dynamic model. 
+the surface normal determines the Q matrix. 
+
+second, this brings back the discussion why we did everything in joint space. 
+we could choose either. but joint space was ideal for IJC. I originally thought joint space made more sense and was easier to compare the performance. 
+and now that I think about it, it also had something to do with the states. 
+the I/Os are important but we also wanted the states to be measurable. 
+and our only sensor is the encoder at each joint.
+this needs some exploration. maybe some derivation. 
+however, for this new iteration of the controller to work, it's straight forward if everything is in task space from my current understanding. 
+it could also be possible if we have a mapping to map everything back and forth.
+that's kinematics, I know. but I'm not sure if it works like that.
+
+third, this reminds me of virtual fixture/active constraints more and more. 
+and on a side note maybe, this is more about the geometric property (surface normal) of the environment. 
+we still consider everything stiff. 
+if it works perfectly, no penetration.
+but apparently that's not going to happen but we don't really talk about "stiffness" of things.
+our stiffness is not a number. it's infinity. it should be. 
+but maybe there is a relationship between the gains in Q matrix and the "stiffness". 
+it's just that right now, we only consider the simple cases. 
+very large gain means infinity stiffness wall.
+0 gain means free space or at least no constraints.
+the something in between is the thing that's missing.
+circling back to virtual fixture/active constraint, it doesn't care about stiffness. 
+it just keeps you away from (entering) a certain area. 
+haptics rendering, on the other hand, renders a specific stiffness of a specific thing. 
+
+## a quite random thought
+when you do haptic rendering, on a point cloud level, is there really 6-DOF rendering?
+
+I understand a 6-DOF device, b/c it could be a stick and a 2-point collision. 
+but it seems that each point is a 3-DOF rendering and the end-result of that on the device is a 6-DOF one, with a torque.
+to rephrase, if the basic unit of interaction is based on point-point interaction, there should be no torque rendering on that level.
+
 # 20190731 - 0801
 was I too deep into implementation that I forgot about research?
 ## reexamined the performance MIMOMOP vs. MIMO

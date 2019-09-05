@@ -1,5 +1,87 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20190905
+new beginning (IMPORTANT)
+## yesterday meeting recap
+3 main things needed moving forward with this discrete time extension (DTE) paper
+### thorough performance evaluation for the whole workspace
+this point means testing (query) with a lot of points on the wall, with noises and other things included. 
+this is to show robustness and sensitivity.
+this shows an overall image of the controller performance instead of just one point.
+this also includes my discussion of the performance drop away from OP.
+this needs to be done with a larger scale, running 100+ simulation for 1 case.
+
+**TODO:**
+- [ ] a `parsim()` (maybe) script to run things in parallel to speed up
+- [ ] choose a set of varying parameters and how they vary
+- [ ] maybe introduce some randomness into the simulation
+- [ ] save everything (parameters and results) in case of later analysis
+- [ ] automate the evaluation process with metrics
+- [ ] metrics list: RMS, stiffness, and maybe something in time domain, in joint torque
+
+### apply this to ADAMS in the absence of real experiment
+this point is not really needed.
+but b/c I cannot do real experiment right now, this serves as what happens when there is a modeling error. 
+this can be updated later b/c right now I don't have a concrete todo list. 
+this can be done either in co-simulation or directly in ADAMS depending on the capability
+
+### find a baseline to compare with
+this point is hard to do b/c right now I don't know how to implement any of the current methods from other group myself.
+there are some potential candidates though.
+
+### other things like: 
+- perturbation in other directions
+
+## misc
+- added *saveAnimation.m* to save animation with script
+
+- modified the order of plotting to push noisy signals in the back
+
+- changed "MIMOMOP" to "MOPMIMO" so that all controllers have similar/the same ending. this was better for saving variables using regular expression.
+
+- added *matlabCodeSnip.md* to accumulate useful/not yet in-use commands and scripts. a list of things I wanted to solve was also included.
+
+- added save mat file in *saveMultiFigs.m*
+
+- updated Q matrix gain in *linScript.m*
+
+# 20190901
+## copied 2 more controllers to *disturbTest.slx* 
+copied from *DcontrolDemoLMwIAW1D.slx* and *controlDemoIJ1D.slx* to make DMIMO and SISO controllers. now, this is really a "one file rules all" situation.
+the *exeScript.m* and the *plotScript.m* were all updated accordingly.
+now the plots had designated color and the joint angle for DMIMO was a bit different from others just to show the "discrete nature" of things.
+
+## parameter search again
+on [20190612](https://github.com/easyt0re/piecewiseLinearModel#tried-to-sweep-for-good-q-matrix-again) I tried to search for new "gains" for the controllers b/c I was trying to do discrete time and encoder quantization.
+the goal was to "relax" the control a little bit so that there was enough "error" for the encoder to pick up.
+on [20190701](https://github.com/easyt0re/piecewiseLinearModel#again-note-the-setup-for-the-simulations) I made notes again about the "gains" used in both MIMO and SISO methods.
+I remembered that I showed this result to my supervisors and it was quite promising.
+for the last a few days, I had been trying to recreate the result but it didn't work.
+MIMO and DMIMO worked fine but SISO was almost definitely better.
+this was not what I remembered and I couldn't explain.
+I did another sweep in for the Q matrix but it didn't help much.
+maybe instead of making MIMO better, I should relax SISO a bit. 
+but I got no reason to do so and I didn't really know how.
+
+however, DSISO was probably not going to work.
+it seemed that for MIMO, "c2d" was OK and the performance was comparable.
+however, for SISO, "c2d" (both discretization and quantization) pushed the system to instability.
+and it didn't end here. read on.
+
+## test performance "far" away from OP
+SISO was only "linearized" at origin.
+MIMO could be linearized wherever but in current case also at origin.
+with a `y = +25 mm` offset, it seemed that SISO outperformed MIMO, less error and less saturation.
+originally I was going to show the performance drop as the "query point" moved further away.
+this still holds within MIMO but I couldn't explain how SISO wasn't affected that much.
+
+## misc
+- added TCP pose plot, currently more interested only in z position plot
+
+- made the simulation longer b/c from some plots it seemed that the system needed more time to settle
+
+- updated *saveMultiFigs.m* to create folder when it's not there
+
 # 20190824
 lost again in my own files, both as in "I don't know which file is for what" and in "I don't know what I should do next"
 ## revisit discrete time implementation with IJC

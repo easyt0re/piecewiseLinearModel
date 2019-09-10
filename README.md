@@ -1,5 +1,17 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20190910
+## misc
+- changed 5x5 to 5x3 to debug the code better.
+
+- noticed some of the variables were not initialized every time, hence there could be some errors. could be fixed later.
+
+- added `checkidx` to understand and check if everything matches.
+
+- added all the `_Viz` variables to better visualize points on the wall.
+
+- changed force from 20 to 15. 20 was too large and with a 3x3 grid, many points ended up in singularity. this was probably due to saturation. temporarily changed to 15.
+
 # 20190909
 ## started "large scale" work
 started the development of *runLargeScale.m* to run a large number of simulations in parallel and save everything for post processing.

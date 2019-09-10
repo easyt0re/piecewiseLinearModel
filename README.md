@@ -1,5 +1,36 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20190909
+## started "large scale" work
+started the development of *runLargeScale.m* to run a large number of simulations in parallel and save everything for post processing.
+the controllers (gains) should be saved previously and loaded for the simulation instead of calculating them every time.
+the simulation is done with `parsim()` and `io` is defined now mostly for different query points.
+
+a post-processing script was also developed. 
+currently, it's for spotting singularity and making sure the simulations were correct.
+a real analysis should be developed later.
+
+## modularization of the system
+frankly speaking, I don't have the correct idea of modularization of a control problem.
+I should have clearly defined all the I/Os for each module and setup boundaries for them.
+it's a bit late b/c so much had been done already. 
+but at least I could try to keep that in mind from now on.
+
+to compare different controllers, other modules, like the control plant should be the same.
+in my case specifically, the encoder model (quantizer + zero-order hold) should be a part of the control plant model.
+the angle compensation and other things should be done after this and outside of this.
+also, reference signal should be the same.
+Lei also pointed out that I shouldn't quantize reference signal and angle compensation in the controller b/c controller should be relatively independent of the resolution of the encoder.
+this controller should work for a wide range of encoder resolutions.
+the controller doesn't need to be changed with a different resolution.
+
+thus, these changes were saved in the new version of *disturbTest.slx*. 
+
+## misc
+- updated all the controllers in *disturbTest.slx* to have encoders (quantizater + zero-order hold) and kept the name. the old version was saved as *disturbTest_bak.slx* for backup and quick roll-back.
+
+- corresponding to the adoption of the encoder model, the way to plot joint angles in *plotScript.m* was also updated.
+
 # 20190905
 new beginning (IMPORTANT)
 ## yesterday meeting recap
@@ -12,12 +43,12 @@ this also includes my discussion of the performance drop away from OP.
 this needs to be done with a larger scale, running 100+ simulation for 1 case.
 
 **TODO:**
-- [ ] a `parsim()` (maybe) script to run things in parallel to speed up
+- [x] a `parsim()` (maybe) script to run things in parallel to speed up
 - [ ] choose a set of varying parameters and how they vary
 - [ ] maybe introduce some randomness into the simulation
 - [ ] save everything (parameters and results) in case of later analysis
 - [ ] automate the evaluation process with metrics
-- [ ] metrics list: RMS, stiffness, and maybe something in time domain, in joint torque
+- [ ] metrics list: RMS, rssq, stiffness, and maybe something in time domain, in joint torque
 
 ### apply this to ADAMS in the absence of real experiment
 this point is not really needed.

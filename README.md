@@ -1,5 +1,106 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20191008
+## further implemented Monte-Carlo in *runLargeScale.m*
+the current script ran in a way that 1 simulation / 1 batch ran all query points once. 
+based on this, there were 2 ways to randomize disturbance level.
+for each batch, generate 1 random number; or for points even in the same batch, generate a random level.
+the point of the first way was that for the same batch, the level was the same.
+since we were supposed to do Monte-Carlo, keeping the level in each batch the same wasn't really necessary.
+so I implemented the second way in a not so clean fashion.
+however, this also made it "useless" to see 1 batch in 1 plot (maybe) b/c the levels changed.
+
+while we were here, let's take a closer look of the Monte-Carlo process. 
+the purpose was to show mean and variance to a certain property. 
+in my opinion, this property should be at least be constant in theory. 
+in other words, it really has a mean to begin with. 
+the reason why I brought this up, was that I always suspected "this property" varies under different levels of disturbance. 
+if the property in question is the max deviation/penetration, this is probably the case. 
+in this sense, maybe this property/metrics is not ideal. we should choose something "normalized". 
+if this property is stiffness, maybe it's better but I still suspect that it also varies with the level of disturbance. 
+to look at this in another way, we are rendering a infinite stiff wall. 
+max penetration shouldn't change w.r.t level of disturbance. 
+
+## stressed more on stiffness in post-processing
+given the discussion above and all the deviation vs. penetration confusion, stiffness related metrics were chosen to be reported later.
+this time we carefully chose those positive stiffness. 
+I was thinking about making the visualization part a helper function.
+
+## preliminary findings from Monte-Carlo simulations
+used Xinhai's desktop PC to speed up the process. 
+only looked at stiffness related metrics. 
+in general, the values varied a lot, judging from the variance.
+the min was at $10^4$ and the max was at $10^5$. 
+
+in details, the point (6,9) was a bit out of place, stiffness too high. 
+was there something wrong that led to this high peak or the peak was supposed to be?
+at first, I thought there was singularity, meaning the calculation was off. 
+but now I felt like maybe nothing went wrong. 
+it's in the middle of a few points and actually a few better points. 
+the neighborhood seemed to show a rise in the stiffness. 
+but this single point was probably too high. 
+if nothing was wrong, maybe try log axis?
+
+one way to find out was to run multiple random simulations at this point. 
+and I could maybe swap out the "bad values" if they were indeed problematic. 
+
+a closer look at (6,9) batch by batch showed negative stiffness. 
+this was definitely "wrong". 
+to single out this simulation, `idxQP = 28`. 
+a bunch of useful commands were still in command history instead of in script. 
+basically, for a simulation that went wrong, there was no penetration. 
+deviation in z was always positive. 
+this could be fixed in the post-processing script but I also needed to make sure this "all positive deviation" was supposed to happen. 
+
+## misc
+ready to move and saveFiles were currently not pushed to git by .gitignore
+
+# 20190919
+## misc
+-  cleared most of the data logging in MIMO and DMIMO controllers. didn't change the other 2 at this point b/c they weren't used. this was the attempt to shrink the data saved after parallel simulation.
+
+- deleted inport/outport in *disturbTest.slx* b/c they are not used.
+
+- commented out all the to workspace blocks only in DMIMO controller b/c they are not used.
+
+# 20190918
+## important points of the meeting
+- [x] do random disturbance level (amplitude) instead of a white noise. white noise could be kept but random amplitude is more important
+
+- only do DMIMO for now
+
+- allocate time for subtask (development, simulation) and plan
+
+- [x] check stiffness and they should all be non-negative
+
+- remember to add a plot when linearized at a different point
+
+- [x] add another stiffness: instant stiffness, stiffness at each time point
+
+- [x] save disturbance and noise
+
+- [x] choose what to save carefully
+
+# 20190916
+## tested white noise block
+this block was governed by noise power and sampling time. 
+I couldn't and didn't try to find a relationship between the outcome and these two.
+the point here is that actually these 2 affect the amplitude of the noise at the same time.
+`[0.001, 0.001]` yielded a noise between 4.
+`[0.001/4, 0.001]` yielded a noise between 2.
+
+# 20190912
+## added noise to demonstrate robustness and sensitivity
+currently the noise and the "randomness" was originated from 2 things.
+there could be sensor noise. 
+this could be done by changing encoder resolution.
+the other was when I applied the force disturbance at TCP.
+these could be white noise and could be applied at the same time.
+
+the "no noise" case was still kept.
+for the "noise" case, maybe we could run 10 times per point.
+in implementation, we could run the whole thing (*runLargeScale.m*) 10 times with noise.
+
 # 20190910
 ## misc
 - changed 5x5 to 5x3 to debug the code better.
@@ -39,7 +140,7 @@ the controller doesn't need to be changed with a different resolution.
 thus, these changes were saved in the new version of *disturbTest.slx*. 
 
 ## misc
-- updated all the controllers in *disturbTest.slx* to have encoders (quantizater + zero-order hold) and kept the name. the old version was saved as *disturbTest_bak.slx* for backup and quick roll-back.
+- updated all the controllers in *disturbTest.slx* to have encoders (quantizer + zero-order hold) and kept the name. the old version was saved as *disturbTest_bak.slx* for backup and quick roll-back.
 
 - corresponding to the adoption of the encoder model, the way to plot joint angles in *plotScript.m* was also updated.
 

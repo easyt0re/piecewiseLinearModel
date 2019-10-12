@@ -1,5 +1,93 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20191009
+## the meeting notes
+the contribution of the discrete time paper again narrowed to the idea of doing haptic rendering with position controller. 
+I had no problem with that but Lei seemed to suggest once again to put real experiments in this paper. 
+I also had no problem with that but I considered this a huge change in writing and research. 
+
+the reasons why I avoided real experiment:
+
+- I didn't think the hardware was ready.
+
+- there was still much work to be done for my controller to work on the real hardware. 
+
+- I didn't really think about the real experiment or how to really do it. I still believe I cannot copy everything from simulation to experiment, though both supervisors think otherwise. 
+
+- the modeling error between the simulation and the real machine was too huge to handle by the controller. basically, I'm saying probably it's not going to work.
+
+I'm lost again moving forward. 
+this happened to me after half of all my meetings. 
+because of this, I question the function of the meetings. 
+at least I should set goals for myself next time when we have meetings. 
+
+- [ ] a figure of how the grid of QPs is located in the paper showcasing the OP, the QPs, and the workspace
+
+- [ ] SISO is not the focus anymore, try new baseline
+
+- [ ] maybe plot `std/mean` to have an idea
+
+- [ ] check the reason behind all positive deviation at (9,6)
+
+## checked (9,6) for negative stiffness
+previously, a closer look showed that the deviation was always positive, making the calculation of the stiffness wrong. 
+I ran this simulation alone w/o any disturbance. 
+it showed that in the beginning there was a flicker in z direction with a peak of positive 1 mm. 
+what's more, the TCP actually stabled at a positive z value. 
+it cannot really reach 0. 
+so maybe it's better to check all points with no disturbance to see the actual position of the TCP.
+this is due to quantization I think. 
+
+with roughly the same disturbance (7 N) turned on, this peak was smaller but no negative deviation appeared. 
+hence, no penetration. 
+with even a 15 N disturbance, the upper limit, the system showed a very small negative deviation, meaning the stiffness could still be very high but in a correct way. 
+at this point, I couldn't figure out why the "performance" (stiffness) of this point was so outstanding. 
+
+## the idea of restarting all over again
+Lei gave me the impression he was feeling "you could definitely do better than this. why don't you do it?" 
+I'm happy and sad that he might feel that way. 
+I'm happy to see potentials and I'm sad b/c I don't really feel like it works that way and there were things I've done wrong, making this not as potential as he thinks, maybe. 
+so here is a list of things I could do differently, maybe right away. 
+thus, this could also be a **TODO** list.
+- [ ] do everything in task space instead of joint space
+
+- [ ] have different constraints on different directions
+
+- [ ] have well-planned-out I/Os for the control plant and differentiate states, measurements, outputs, and so on
+
+- [ ] distinguish joint torque and motor torque (the modeling of gear ratio)
+
+- [ ] do everything with error instead of position
+
+after listing everything here, it doesn't seem like much and maybe it IS something that I can really do. 
+now, although some of this should be repeating old notes, I would like to list the reasons behind these re-dos.
+
+the first point is to enable Lei's idea, which is actually the second point. 
+apart from that, b/c we are using LQR, working with task space is more direct and intuitive.
+
+the second point is the main point. 
+this enables constraints on z direction to stop TCP on the wall and no constraints on other directions so that it can move freely, closer to what we are supposed to do.
+ultimately, it's related to the surface normal of the wall we are rendering. 
+thus, essentially, the Q matrix, the weights on correcting deviation, is related to the geometry of the wall, a property of the wall. 
+so instead of a stiffness of that wall, we save the weights associated to that wall. 
+and when in collision, these weights would be loaded to the controller to be activated.
+but on top of this, there is still a "switch", which I guess it's the collision detection flag in this case. 
+I don't know how to do a unilateral constraint with LQR (correct positive error but not negative one).
+
+the third point has to do with better definition of things, to make sure that the control plant is close to the physical machine. 
+apart from the formulation of things, I would like to specifically point out that there is no joint velocity sensors installed. 
+the only measurement currently available is the encoder reading. 
+
+the fourth point is rather concrete. 
+for some reason (lazy) I didn't incorporate gear ratio in the current model. 
+the thing I'm controlling is joint torque, not motor torque. 
+this would affect the torque and the encoder reading. 
+
+the fifth point was brought up in the discussion with Yuchao and Yu. 
+though I don't fully understand, formulating it that way makes it closer to the form of tracking problem. 
+then some of the tools from that area can be of use maybe. 
+regardless, it seems to make the form more elegant and straight-forward for some analysis.
+
 # 20191008
 ## further implemented Monte-Carlo in *runLargeScale.m*
 the current script ran in a way that 1 simulation / 1 batch ran all query points once. 
@@ -32,7 +120,7 @@ only looked at stiffness related metrics.
 in general, the values varied a lot, judging from the variance.
 the min was at $10^4$ and the max was at $10^5$. 
 
-in details, the point (6,9) was a bit out of place, stiffness too high. 
+in details, the point (9,6) was a bit out of place, stiffness too high. 
 was there something wrong that led to this high peak or the peak was supposed to be?
 at first, I thought there was singularity, meaning the calculation was off. 
 but now I felt like maybe nothing went wrong. 
@@ -44,7 +132,7 @@ if nothing was wrong, maybe try log axis?
 one way to find out was to run multiple random simulations at this point. 
 and I could maybe swap out the "bad values" if they were indeed problematic. 
 
-a closer look at (6,9) batch by batch showed negative stiffness. 
+a closer look at (9,6) batch by batch showed negative stiffness. 
 this was definitely "wrong". 
 to single out this simulation, `idxQP = 28`. 
 a bunch of useful commands were still in command history instead of in script. 
@@ -157,11 +245,11 @@ this needs to be done with a larger scale, running 100+ simulation for 1 case.
 
 **TODO:**
 - [x] a `parsim()` (maybe) script to run things in parallel to speed up
-- [ ] choose a set of varying parameters and how they vary
-- [ ] maybe introduce some randomness into the simulation
-- [ ] save everything (parameters and results) in case of later analysis
-- [ ] automate the evaluation process with metrics
-- [ ] metrics list: RMS, rssq, stiffness, and maybe something in time domain, in joint torque
+- [x] choose a set of varying parameters and how they vary
+- [x] maybe introduce some randomness into the simulation
+- [x] save everything (parameters and results) in case of later analysis
+- [x] automate the evaluation process with metrics
+- [x] metrics list: RMS, rssq, stiffness, and maybe something in time domain, in joint torque
 
 ### apply this to ADAMS in the absence of real experiment
 this point is not really needed.
@@ -311,7 +399,7 @@ I also thought about adding limits to the joints. this was something on hold ind
 ## further tests with MIMOMOP vs. MIMO
 the overall conclusion still holds: the first is not superior to the latter from a simple look at the joint angle plots. and it should be no surprise that improvements vary from point to point. the closer to the OP, the better. where the OPs were for MOP and where the user pushed were important to the performance. for example, if we picked OP and pressing point both at the edge of the workspace, for MOP it would be perfect (right on OP) but for MIMO it would be the furthest away from OP. of course, in this case, MOP would be a lot better than MIMO. is this a good pick? how do we justify that? if we picked the center region, no doubt the two performed the same b/c the controllers were identical. maybe I should do a "grid query" of the whole space, or actually the whole wall surface, and then have some evaluation criteria to decide which is better and how much better it is. this probably means a lot of simulations. could borrow a better PC (more cores, or at least threads) to do this. 
 
-to this end, maybe next step would be to change the *genMultiOPs.m* and generate gains and offsets with other params. there could also be some "hand shake" (passing the params through) between *genMultiOPs.m* and *multiOPsGS.m* either by save/load *.mat* file or straight up use the same variables. speaking of which, there was also a **TODO** related to separate "static" part from the controller design part from before.
+to this end, maybe next step would be to change the *genMultiOPs.m* and generate gains and offsets with other params. there could also be some "hand shake" (passing the params through) between *genMultiOPs.m* and *multiOPsGS.m* either by save/load *.mat* file or straight up use the same variables. ~speaking of which, there was also a **TODO** related to separate "static" part from the controller design part from before.~
 
 ## ran MIMO simulation successfully in *disturbTest.slx* with *exeScript.m*
 this was one step closer to "one script rules all". copied some lines over from *exeDisturbScript.m*. 
@@ -351,7 +439,7 @@ when I was rewriting *exeScript.m*, I realized `stopp_pose` was never used in th
 
 turned out *exeDisturbScript.m* was the only one that needed changing. the missing code that used to be in *linScriptJS.m* was pasted in and the order was changed a little for everything to work. the 2 simulink models in the script were also updated based on their position control counterparts (mostly the ref signal part). now *exeDisturbScript.m* and *exeInitPosScript.m* could be run successfully directly. I imagined that all "exe" script should look more like *exeDisturbScript.m*
 
-another thing I realized was that I didn't really do MOP for SISO. the "linearized model" for SISO was obtained by [locking joints and measuring/calculating moment of inertia](https://github.com/easyt0re/piecewiseLinearModel#20180822). it was quite a manual process so I didn't really further develop it to work with MOP. so for SISO/IJC, the `linop_pose` was always the origin. this could be an optional **TODO** but it's not that important currently.
+another thing I realized was that I didn't really do MOP for SISO. the "linearized model" for SISO was obtained by [locking joints and measuring/calculating moment of inertia](https://github.com/easyt0re/piecewiseLinearModel#20180822). it was quite a manual process so I didn't really further develop it to work with MOP. so for SISO/IJC, the `linop_pose` was always the origin. ~this could be an optional **TODO** but it's not that important currently.~
 
 ## the performance of MIMO in disturbance task
 with *exeDisturbScript.m* working with different "position pressing the wall", I tried a few points. everything was OK for SISO. however, for MIMO: with offset along x axis, TAU would be pressed into singularity; with y offset, it was OK; with z offset, although it didn't make sense (the wall was `z = 0`), it also got initialized in singularity with positive offset. all the singularities seemed to be related to simulation. with the working cases, MIMO was worse than SISO. this went back to the fact that the current gains were obtained with position tests, which should give MIMO bad performance in disturb tests.
@@ -413,15 +501,15 @@ surprisingly, this was done quite easily. the code was mostly from *linScript.m*
 saved *controlDemoLMwIAW1D.slx* as *disturbTest.slx* and successfully wrapped the controller part into a variant subsystem. now, controller (MIMO/SISO, later continuous/discrete maybe) could be specified with a flag `CTRLTYPE`. tested with MIMO continuous time and it's working. need to do the same for the rest. the result of each run could be saved in a `SimulationOutput` structure for plots later. 
 
 many more things could be done but I should follow one through. the rest could be copy-and-paste then.
-- [ ] copy paste all kinds of controller here (no rush, multiple OP first)
+- [x] copy paste all kinds of controller here (no rush, multiple OP first)
 
-- [ ] maybe "disturb" and "position" could also be in one file
+- [x] maybe "disturb" and "position" could also be in one file
 
-- [ ] maybe continuous and discrete controller should only have differences in values but the structures the same, meaning switching scripts for calculation instead of switching controller subsystems.
+- [x] maybe continuous and discrete controller should only have differences in values but the structures the same, meaning switching scripts for calculation instead of switching controller subsystems.
 
-- [ ] maybe rewrite how things are loaded and saved, including plotting scripts. eventually, all the "exe" scripts would be rewritten.
+- [x] maybe rewrite how things are loaded and saved, including plotting scripts. eventually, all the "exe" scripts would be rewritten.
 
-- [ ] think about how to do the simulation for multiple OPs
+- [x] think about how to do the simulation for multiple OPs
 
 # 20190709
 ## speed things up with parallel stuff

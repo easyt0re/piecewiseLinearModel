@@ -1,5 +1,76 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+# 20291015
+## discussion about the initial wiggle
+after discussion with Lei and Tong, what happened at (9,6) was basically confirmed to be due to linearization. 
+and the wiggle seemed to be inevitable given the fact that we are doing linearization. 
+the solution to this could be multiple points, which should be our next step. 
+there could also be other ways but it seemed that it's supposed to happen when using basic linearization methods. 
+
+another way I came up with was to change a little bit about the simulation. 
+we could add a small motion in the front of the whole simulation. 
+the simulation always initializes at the origin, making the least wiggle. 
+use `stopp_pose` to define the position where the disturbance actually happens. 
+before anything happens, TAU would initialize at origin, move to another point, and stop there, stable. 
+then, at that point, invoke the disturbance. 
+
+as I was typing this, I realized what I did here was just to invoke the disturbance when the TCP was stable, instead of when the "time" started. 
+so all I needed to change was probably a 1 s wait/pause for the TCP to be full initialized/stable and then apply the disturbance. 
+so the *disturb1DInit.m* was modified with a 0.5 s delay in the beginning. 
+the whole simulation grew to 1.5 s, with 0.5 s nothing, 0.5 s pulse, and 0.5 s nothing. 
+a pre-test showed that now the effect of the pulse coming and going seemed to be more or less the same. 
+I would run 20 tests with this later and re-evaluate.
+
+# 20191012
+## checked 0 disturbance cases to look into the (9,6) case
+it seemed that everything was due to linearization and compensation. 
+with 0 disturbance, initializing at the origin showed almost no vibration and the only wiggle should be coming from the encoder resolution. 
+then, negative y value (initializing at a position below x axis, y = 0) yielded a positive peak in z direction at the very start of the initialization. 
+and a positive y gave a negative peak, respectively. 
+b/c there's linearization and at the very beginning of the simulation there was no "previous reference", the controller was probably thinking that TCP was at origin but it's not. 
+the controller worked solely based on the compensation value from the linearized point. 
+with x axis (y = 0) as the dividing line, the peak was probably caused by the "urge" to go to origin but later realized, "OK, I'm actually not there and I shouldn't go there." 
+
+the disturbance on the other hand, a push against the wall, had the tendency to cause a negative z motion. 
+these 2 motions/tendencies would both contribute to the final deviation/penetration the user would feel. 
+when below x axis, if the positive peak was even larger than the negative z motion caused by the disturbance, it could result in a non-negative deviation. 
+and that's probably what happened at (9,6). 
+with the largest disturbance (15 N), the ultimate penetration was still quite small, not to mention the lower bound was 5 N. 
+and if we took a look at the points above x axis, I imagined the already negative peak would make the penetration worse. 
+
+since this was probably happening along y axis, I also check x axis. 
+b/c if this was the result of the linearization, all points should be affected. 
+looking at the result, maybe this direction was somehow not as bad and a little bit different. 
+all points on x axis seemed to have negative-positive-zero wiggle along z direction, no matter left or right side of the y axis. 
+however, it seemed that points on the left had larger (absolute value) negative peaks than the positive ones. 
+the points on the right seemed to have positive peaks a little bit larger than the negative one, if not similar. 
+all peaks considered, the range was within 0.4 mm, unlike the peaks along y axis (within 1 mm). 
+this probably explained why y axis was not a dividing line for the calculated stiffness. 
+
+so it seemed that there really were some influences from the linearization. 
+and the fact that this "symmetry" was not really w.r.t the origin but rather the x and y axis was probably b/c of the structure of TAU or even the choice of motors. 
+but these still felt like imagination. 
+it's not a perfect explanation. 
+but this was my best guess for now. 
+
+## examined post-processing the result of 20 simulations
+currently, the simple fix for (9,6) was to `ans(9,6) = ans(8,6);` b/c (8,6) most of the time happened to be the second highest value. 
+currently, (9,6) was more like an out-lier and this was the way to eliminate it to have a better look at other points. 
+this hot fix was applied to any values that produced a "heatmap". 
+`std./mean` was plotted and 45/121 was below 0.1. 
+maybe this was already good enough. I cannot tell. 
+
+the points along the negative y axis were still different from others. 
+they were probably 10 times higher than $x>1$ and $x<-1$. 
+again, I don't really have good explanation for this. 
+
+## misc
+I don't know if this is a feature or a bug for MATLAB. 
+when I used Signal Data Inspector and when I clicked on the signals in a descending order, the signals started to change.
+it's not all of them. and I guess if I continued, it would cycle through all the signals. 
+I can see the potential of this feature/bug but the important thing here is how the program could tell what I really want to do.
+in my case, I don't really want to cycle through signals. I just want to see them. so it's buggy. 
+
 # 20191009
 ## the meeting notes
 the contribution of the discrete time paper again narrowed to the idea of doing haptic rendering with position controller. 

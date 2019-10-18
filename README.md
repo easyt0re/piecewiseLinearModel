@@ -1,6 +1,139 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
-# 20291015
+# 20191018
+cursed by the knowledge of the future. 
+## made related changes to DMOPMIMO
+edited *genMultiOPs.m* to generate gains for DMOPMIMO. 
+generated and saved all the gains as *saveDMOP.mat*. 
+added related parts in *exeScript.m* as well as *disturbTest.slx*. 
+tested a few points by running *exeScript.m*. 
+(cleaned signal logging for later *runLargeScale.m* to save stuff)
+the points on the edges were a little better b/c it had more OPs. 
+the points on the boundaries of the switching were terrible. 
+(when I first realized we would do MOP later and the supposed benefit of it, I was also wondering the drawback of this other than saving a few look-up tables. 
+then I realized the weak points shifted from the edge points to the boundary points. 
+and now I knew how bad when "nearest" was used for switching) 
+`y = -12 or -13` were already having peaks larger than DMIMO under disturbance. 
+`y = -12.5` had oscillations. 
+not to mention `(x,y) = (12.5, -12.5)`. 
+this was something that must be fixed, otherwise there's no point of doing MOP. 
+this might not show if I ran *runLargeScale.m*. 
+but I definitely need to at least address this in the future. 
+
+as I said in yesterday's log, I just wanted to peek a little bit about what's coming. 
+this was not supposed to be what's worrying me currently. 
+but now I felt like I couldn't care about anything else. 
+alright, alright. 
+I had to let go of this and let the future me worry about this. 
+I stopped at running *exeScript.m* with DMOP. 
+*runLargeScale.m* was probably not ready for DMOP. 
+
+## looked at the newly generated simulation results
+the new result was named *saveSumDelayv3.mat*. 
+this was with 0.5 s delay, the delay had no noise, and the way to get instant stiffness was also a bit different. 
+the mean of the wall plot (another name for the distribution plot) looked the same as v2. 
+with y increasing, the stiffness increased. 
+the std plot looked smooth and it probably should. 
+there's no obvious tendency. 
+there were a few (1 or 2, maybe up to 4 out of 121) high points. 
+and with the high points gone, the ratio of std over mean could be less than 10%. 
+there's also no tendency in the ratio, which was a bit strange. 
+compared to the "common" points, the high points were a bit odd.
+maybe it's better to check them out before moving forward. 
+
+part of the reason to turn off noise while the delay was to get better results for `minInsStiff`. 
+but it appeared that the period after the disturbance went away also affected the number. 
+took a step back, what we really wanted to capture was the penetration when the disturbance happened. 
+so I limited the time period for the search to 0.5 - 1.0 s. 
+maybe I should also do this for `minStiff`. (I didn't) 
+results were generated w/o doing the same to `minStiff` and named *saveSumDelayv3.1.mat*. 
+with this modification, `minInsStiff` looked a lot like `minStiff`. 
+it also had the high points in std plot. 
+`minInsStiff` was always lower than `minStiff` in mean plot, as expected. 
+
+## misc
+- b/c we decided to shift away from the SISO method, SISO related code would be slowly commented out and removed. 
+
+- there might be some naming issues between OPs and QPs. check this before ran *runLargeScale.m* on DMOP. 
+
+# 20191017
+had a meeting and talked about responsibilities. ok. 
+## more on generating stiffness distribution plot
+I finally had a name for this plot. 
+with the problem of (9,6) I realized I should apply the disturbance when the system was stable instead of apply when it's still trying to stabilize after initialization. 
+I added a 0.5 s delay in the beginning and ran 20 tests. 
+*disturb1DInit.m* was modified for this. 
+I got the plot. 
+it looked nicer but then I realized I should only check 0.5 - 1.5 time period for penetration. 
+so *postProcFcnLargeScale.m* was modified to "cut out" the 0.5 delay in the front. 
+
+after this modification, the mean stiffness distribution seemed right and very "smooth".
+with the increase of y coordinate, the stiffness seemed to go up linearly. 
+this was something quite interesting. 
+up until this point, I wasn't really expecting anything anymore. 
+however, this seemed to show that there was just some performance distribution issue in the workspace in general for TAU. 
+I don't think this is an effect of the linearization. 
+it could be the fact that when y coordinate is larger, TAU could exert/withstand larger force on TCP in z direction. 
+so I guess what I was hoping was to have a distribution that has a better performance around the origin than far away. 
+if that's the case, the idea of multiple points linearization would make more sense and could be the next step. 
+now, I could still argue that what happened with (9,6) was the motivation for MOP. 
+
+maybe I should try to run DMOPMIMO first and see what would be the improvement. 
+then I could have a better discussion and a strong base for the next paper. 
+
+## misc
+- from now on, name every folder for results starting with "save". modified *.gitignore* to ignore all folders with this beginning. 
+
+- also realized after adding the delay, there was noise in the delay/"should have nothing, waiting to be stable" phase. modified *disturbTest.slx* and added a step as an on/off switch. tested this in the *testNoise.slx* first. 
+
+- notice: for the current code, with the `isRandomLevel = 1`, if I only run *disturb1DInit.m* and not *runLargeScale.m*, the disturbance level is always -1 N. this is the case when I run *exeScript.m*. 
+
+# 20191016
+wow, traveled into a little bit into the future back there. 
+
+## reflection on the discussion with Lei
+the discussion ended up mostly around the states of the system. 
+
+we discussed moving states from the current joint space to task space. 
+the intuition behind this was to have task space values as state vector when using LQR so that we could constraint z while let x and y free. 
+it seemed that there were some issues doing that. 
+b/c we were doing full state feedback, the states had to be "observable" (should be the correct word). 
+I wouldn't say the task space values were not observable but it's hard to observe them. 
+another thing about changing the states was that it might be hard to have meaningful values or representations. 
+if we chose TCP pose (xyz and roll pitch yaw), what's the meaning of the dot of these values? 
+if we chose cartesian and angular velocity, what's the meaning of the integral of these values? 
+these problems focused mostly on the angular part of the values. 
+I'm sure there must be ways to do this but I don't know how. 
+mixing task space position with joint space velocity was also not valid b/c you have to have the values and the dot values at the same time. 
+the conclusion of this discussion was maybe we could do something better. 
+however, for the current knowledge I have, doing control in joint space is the best I can get. 
+of course, we could still do things in joint space and map it to task space. 
+but the mapping was not straight forward and made this LQR thing less intuitive. 
+the whole point of moving to task space was to make things intuitive. 
+this reminded me more and more about virtual fixture/active constraint. 
+they have to have something to project the object in task space into joint space in order for joint space control methods to work. 
+
+we also discussed about the definition/formulation of the problem. 
+more specifically, the states and IOs of the control plant. 
+most things appeared to be pretty settled. 
+the input was the motor torque. 
+the output for now was the encoder reading. 
+anything related to the user was the disturbance but I didn't really specify where it entered the system in my block diagram if I had one. 
+the problem or the crucial part was the state(s) and how to choose them to do implementation. 
+the output was something measurable/observable. 
+I don't really think the two should be interchangeable but probably it is here. 
+the states for implementation must be something observable given the output. 
+for example, given encoder reading (joint position), we could get joint velocity. 
+we could also "estimate" TCP pose based on encoder reading but forward kinematics was a bit tricky here. 
+and even if we could, the problem discussed above still remained. 
+
+a side point we discussed was about making everything about error, the point suggested by Yuchao. 
+Lei's current idea was that the current "structure" was enough at least for now. 
+this change would actually change the control logic of the controller among many other important things. 
+it's not as non-trivial as what we did with changing the auto-generated states to desired ones. 
+so this point was dropped indefinitely. 
+
+# 20191015
 ## discussion about the initial wiggle
 after discussion with Lei and Tong, what happened at (9,6) was basically confirmed to be due to linearization. 
 and the wiggle seemed to be inevitable given the fact that we are doing linearization. 
@@ -346,7 +479,7 @@ there are some potential candidates though.
 
 - added save mat file in *saveMultiFigs.m*
 
-- updated Q matrix gain in *linScript.m*
+- updated Q matrix gain in *linScriptJS.m*
 
 # 20190901
 ## copied 2 more controllers to *disturbTest.slx* 
@@ -566,7 +699,7 @@ I added *playground.m* and *playgroundslx.slx* for simple testing and things. th
 
 # 20190710
 ## section 3: change to desired states, augment, and design controller
-surprisingly, this was done quite easily. the code was mostly from *linScript.m*. at this point, everything saved was still 27 (or 27x1) instead of 3x3x3. I later realized that this was only the continuous time part. so this file was still unfinished. another thing I realized was that it's harder to debug `parfor`. whatever was wrong, the flag was always at the `parfor` line though the error was the real error. saved the designed controllers as *lqrGainwI_3x3x3.mat* b/c in the end, *genMultiOPs.m* should be run offline and the controllers should be loaded for real-time usage.
+surprisingly, this was done quite easily. the code was mostly from *linScriptJS.m*. at this point, everything saved was still 27 (or 27x1) instead of 3x3x3. I later realized that this was only the continuous time part. so this file was still unfinished. another thing I realized was that it's harder to debug `parfor`. whatever was wrong, the flag was always at the `parfor` line though the error was the real error. saved the designed controllers as *lqrGainwI_3x3x3.mat* b/c in the end, *genMultiOPs.m* should be run offline and the controllers should be loaded for real-time usage.
 
 ## the start of all controllers in one file
 saved *controlDemoLMwIAW1D.slx* as *disturbTest.slx* and successfully wrapped the controller part into a variant subsystem. now, controller (MIMO/SISO, later continuous/discrete maybe) could be specified with a flag `CTRLTYPE`. tested with MIMO continuous time and it's working. need to do the same for the rest. the result of each run could be saved in a `SimulationOutput` structure for plots later. 

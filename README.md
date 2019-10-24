@@ -1,5 +1,92 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
+
+# 20191024
+yesterday was 1023, which was 11111111. 
+## built a simple model for user hand
+the user hand cannot be modeled as either pure motion or pure force. 
+the logical thing was to model it as a mass-spring-damper system. 
+of course it could be more complex but let's start from here. 
+this was why I didn't really do it in the first place. 
+but it seemed rather easy now that I did it. 
+
+I started *testUserPush.slx* for simulink model building. 
+later, it should be able to work with a version of *disturbTest.slx*. 
+maybe I could even replace the current disturbance signal with this "human hand model". 
+I also started *userHandInit.m* to initialize all the params needed for this part. 
+
+currently, the test was fine when the wall is with a stiffness of 1000 (N/m). 
+it also showed some small vibration (well within +/- 1 mm) when the stiffness was 100000. 
+this was promising b/c it showed that it was still OK when the stiffness of the wall was not so high. 
+but when it's closer to an ideal stiff wall, vibration started. 
+
+the params for the hand model were from a paper I searched currently. 
+at least I had something to reference to. 
+the stiffness as well as the damping coefficient were both quite important for simulation w/o vibration. 
+the model of the wall was currently just a spring. 
+adding other stuff like damping would also improve stability but it's not the current goal and a wall shouldn't have damping. 
+
+everything was built based on the reference point, the origin of the task space. 
+there was a passive XY cartesian stage to have good alignment of all z axes (the world, TCP, hand). 
+~whether or not this should be passive was still undecided. 
+passive wouldn't work. it would move away. 
+active wouldn't work. it would interfere with the motion of the TCP. 
+the ideal way to go was: it was passive when started. 
+TCP probably initialized at the origin and moved to a query point, maybe even a point that's not on the wall but a bit away from the wall. 
+then it became active so that the x and y coordinate of the TCP is "fixed".~ 
+ok, that's probably wrong. 
+this cartesian stage was there to ensure the x and y coordinate, in other words, compensate gravity when the controller couldn't. 
+~that meant this should only be used for the baseline case. ~
+so what might really end up happening was that I had 2 models for this simulation. 
+one was the one I had, for the controller we proposed. 
+in this one, the stage should be passive so that there would be no interference, while still having good alignment. 
+the other one was for the baseline (currently it's the open-loop force control) ~and this XY cartesian stage was used~. 
+the stage should be active and how to initialize would be a later problem to discuss. 
+correcting myself all the time. 
+too many new things and new ways to implement. 
+I was in a hurry so I didn't really think this through, you would see. 
+
+whether or not this would work with what I previously did was still under the question. 
+but I thought it should. 
+~this was not really needed to build a baseline but for some reasons I started to do this.~ 
+the reason why I started this instead of a real implementation of the baseline could be found in the previous paragraph. 
+it's needed, otherwise the baseline wouldn't work. 
+ok, the XY stage was needed but the hand modeling was probably not. 
+
+## made a script for generating the stiffness figure
+for some reason, I forgot to mention I made a separate script for this figure. 
+it used to be a bunch of commands in the MATLAB history but as I moved forward in writing, this should be a script. 
+maybe I didn't mention this only b/c it's not finished yet. 
+
+# 20191022
+wasted 1 day on baseline 
+## implementation on baseline
+I read more about this MMA paper. 
+currently I believed I got most of the implementation right. 
+it came down to 1 MATLAB command `sdhinfsyn()`. 
+this was the one they said they used in the paper. 
+unfortunately and strangely, the MATLAB documentation for this was quite poor. 
+along the way, I found commands like `makewight()` and `augw()`. 
+they seemed to have changed quite a lot and the documentation was outdated somehow. 
+again, very strange. there's even error I believed. 
+I didn't know what I did wrong and I was out of things to try. 
+b/c there's not too much time, the next step would be to give up and try open-loop force control. 
+
+a few things about the paper. 
+I had always thought that it's not a very good paper. 
+maybe there were some misunderstandings but it's not straight-forward, it's all over the place, and some of the things they did for the paper I didn't agree. 
+it's actually like a typical paper I would write: no highlights, chaos, stuffing stuff just to make the pages. 
+but they were really good at write more words. 
+the current problem for my draft was I had nothing to write about though I kinda did many things. 
+
+# 20191021
+## new things to do to make the draft richer
+things showed up in writing. 
+- [ ] do 1 batch of simulations with the same level of disturbance to see if joint 6 torque needs to be larger when y coordinate is smaller
+- [ ] find a really good way to rotate the axes so that the xoy plane is in a "wall" position, not a "ground" position (it's more of an orientation thing actually)
+- [ ] do a finer grid b/c I suspect the current resolution is not enough to show what we care
+- [ ] take a look at the high points mentioned last time to make sure the numbers are correct
+
 # 20191018
 cursed by the knowledge of the future. 
 ## made related changes to DMOPMIMO

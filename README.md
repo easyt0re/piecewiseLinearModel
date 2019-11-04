@@ -1,8 +1,200 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20191104
+it's important to understand your data. 
+## ran 20 more of the previous 20 batches
+as discussed in 1102, I ran these. 
+I could have made many mistakes (I did and fixed a few) but it seemed that the performance was quite robust from the mean figure. 
+after writing this, I also quickly checked standard deviation and it also seemed the same. 
+(speaking of std figures. 
+I was expecting some patterns but maybe I shouldn't.) 
+however, I was still skeptical about this. 
+maybe I should also check the distribution of force disturbance at each QP. 
+
+this check and the high point check from 1102 were both b/c I didn't really understand the sudden changes in mean stiffness. 
+what's so different there to have a high point (and it's really quite high)? 
+
+## and then this happened...
+I really doubted that the first 20 batches and the second 20 should look similar/the same. 
+so I did a third 20 batches. 
+and the high point changed. 
+not very much but still a different point. 
+this at least showed that what I got from the first and the second was not certain albeit probably with a high probability. 
+this also confirmed some of my theories behind the high point. 
+they seemed to be, indeed, existing and reasonable. 
+then my hypothesis was actually every point on the upper half could be a high point, given the right amount of disturbance (and probably noise). 
+this "every" was probably a stretch but at least there should be multiple high points, randomly or symmetrically. 
+
+## ran 20 batches with constant disturbance level 10 and with noise
+I should have done a test run first. 
+it appeared that 10 was already enough to see the ramp effect. 
+maybe I was being pessimistic but this was also bad news. 
+the ramp effect was actually something to avoid in the beginning of design phase I presumed and something should not appear in the performance. 
+(I had this discussion with Lei, he also agreed.) 
+showing at 10 left a even narrower range for the disturbance. 
+maybe I should run 1 batch for each level, w/ or w/o noise undecided. 
+
+## a short discussion with Lei about these findings
+they were quite small/trivial compared with the main goal here and they were a little bit too focused on the details (in implementation), I agree. 
+the above was Lei's comments and he's probably right. 
+but maybe I didn't make myself clear. 
+I also forgot about my point in the discussion. 
+I brought these to him not b/c I thought I should write about them but b/c these things questioned my methodology in my opinion. 
+this went back to, again, the choice of how many batches, disturbance range, and the way to analyze performance (choosing stiffness and using mean and std). 
+
+I would like to note down a few things w.r.t choosing stiffness. 
+stiffness would be good if it's irrelevant to the disturbance level. 
+but here it might not be the case. 
+due to saturation, the rendered stiffness couldn't be irrelevant to the disturbance level. 
+and how stiffness changed w.r.t an increasing disturbance level was also quite confusing to me. 
+I lost myself again in thought in writing this but my goal of writing this was to say that maybe (of course) it's a good idea to mention about disturbance level range when talking about stiffness. 
+this should be quite straight forward. 
+in rendering a wall, if you pushing force exceeded max rendering force, then the mechanism wouldn't stand it. 
+there's no stiffness what so ever. 
+
+Lei also pointed out that though we didn't have a methodology behind choosing number of batches (previously 20 but now debatable), 
+we could keep increasing until things converged. 
+he pointed me to a paper he was writing and I thought I got the point. 
+the value should converge and at some point it should be good enough, like a stop condition for classifier. 
+however, my doubt was whether my "value" would actually converge and if so, could I just do some expectation calculation instead? 
+my guess was this would be a weighted sum and the weight would be the determinant of the result. 
+the other thing (idk the name) should be constant (approximately). 
+the weight then should be the distribution of the disturbance levels across all simulations. 
+if these were reasonable, there's no need to increase and wait for a convergence. 
+
+## misc
+- I had more thoughts on high point(s) but it's probably like what Lei said. it's not that important. it's probably a rabbit hole. 
+
+# 20191102
+## took a look at the high points finally
+it seemed that the calculation was fine as expected. 
+the high points in mean stiffness figure were there b/c they had a few very large values in the 20 batches. 
+this could also be confirmed by looking at std figure. 
+so I looked at each simulation result when there's a high (seemingly wrong) value. 
+I plotted the penetration plot for the run and confirmed that max penetration got the correct value it's supposed to take. 
+I also checked the disturbance signal (level + noise). 
+judging from what I saw, I felt like these high points were easier to reach when the disturbance level happened to be around 5 N (low) and the QP on the upper part of the wall. 
+I guessed this went back to the discussion of what is the proper range of the disturbance level. 
+
+~I could do another 5 - 15 random with noise for 20 batches and analyze this alone or together with the previous 20. (done 1104)~
+I could also do no random level with integer 5 - 15 with noise, each for 20 batches. 
+this I could start with only 5, 10, and 15. 
+10 should be the first to run b/c it seemed promising. 
+if my guesses were correct, 5 would give high points while 15 ramp effect. 
+
+# 20191101
+## tried a few things and thought about them
+tried 15 mm away from origin as OP and with 5 N disturbance. 
+they didn't show anything very exciting. 
+the stiffness distribution was barely changing. 
+at this level, the ramp effect was barely showing. 
+there seemed to be more circle and oval shapes in the plots. 
+one thing Kjell mentioned was that the linearization effect might not be as simple as a circle around an OP. 
+this was unfortunately true and added some complication to the identification process. 
+the current way was done by me eyeballing. 
+there might be a way to filter the image a little bit, to smooth out the noise but I didn't want to process the data too much. 
+moving the OP up and down did decrease/increase the performance of the system given the fact that the upper part of the workspace had a better performance on its own. 
+moving the OP left to right didn't really change anything. 
+subjectively, I felt like, with the left one, the "pattern" was moved a little bit to the left. 
+but the shape was really not that obvious given the reason mentioned above. 
+
+I also did the 15 N only with the up/down. 
+again, nothing much. 
+but this brought up the next point: was the random level ok? should they be compared together? was 20 batches enough for this random level? 
+take the 5 N and 15 N as an example. they actually showed different varying patterns over the workspace. 
+15 N had the ramp effect and 5 N was rather flat I believed. 
+I imagined this would be bad for the `std()` later. 
+at least there should also be some kind of ramp in std plots. 
+but it didn't happen. 
+that's why I thought 20 batches might not be enough to demonstrate this. 
+I really should try to find a methodology to find a proper size rather than choose 20 arbitrarily. 
+apart from stiffness, there was also the max force TAU could generate. 
+maybe 15 N was already out of range and shouldn't be discuss or included. 
+maybe we should focus more on a range where TAU wouldn't saturate so often. 
+
+in general, I guessed I had to do these plots with a fixed scale, otherwise they were even harder to compare. 
+`[1.5, 3]` seemed to be ok. 
+and maybe I should get back to running smaller batches. 
+
+# 20191030
+## meeting notes
+Lei confirmed my thinking of what I was expecting to see: 
+linearization making the area around the OP have a better performance - higher stiffness. 
+
+suggestions for the draft: 
+- Kjell has a separate document for this
+
+- turn off gravity or somehow separate the load by gravity and that by rendering to see the effect of linearization
+
+- add more theoretical stuff for the discrete time design part like discrete time state-space model, how to do `c2d()` in theory and some book referencing. 
+
+- add more figures and equations for the simulation setup part. now the reader might not follow the whole thing. 
+
+## run simulation, run
+I felt like I didn't care about running anymore. 
+it's somehow cheaper than before. 
+thanks, Xinhai.
+
+the batch used to be 11x11. 
+I changed into 21x21 and, without a pause, 51x51 to have a higher resolution. 
+whether or not this was necessary was still debatable b/c it seemed to show something more but also with a lot more noise in the figure. 
+the main trend was still the same in 11x11. 
+
+I tried with different choice of (one) OP but for some reason I changed the constant level of disturbance to be 5 N. 
+this might be too small for TAU in a sense that it's away from saturation limits - the ramp effect (stiffness increases with y coordinate) was not showing. 
+I guess this proved the ramp effect was the result of saturation in a weird angle. 
+but I guess this was also not enough to see what I wanted to see. 
+
+there were a few things to try. 
+a constant disturbance level of 15 N should be checked. 
+with random level disturbance, maybe more tests were needed. 
+or there was a chance that the range of the random level was not good. 
+
+## misc
+- realized I could do some simulations with only 1 OP but at different places instead of the origin. created a bunch of *saveControlTest?15.mat* files for different OP on x and y axis. 
+
+- (I could) turn OL force feedback off at first to that 0.04 mm penetration mentioned in yesterday's log. 
+
+# 20191029
+## implemented the OL baseline
+a version of the open-loop (OL) force control type haptic rendering was implemented. 
+it seemed to work. 
+it's in a separate file named *disturbTestBaseOL.slx*. 
+with the findings and thoughts after building the user hand model, an XY stage was added to the original *disturbTest.slx* to become this new file. 
+later, I realized the important parts are the active XY stage and the passive prismatic joint that's used as a "guide". 
+this "add-on" could actually work with previous position controllers though the joint torques were weird looking b/c the motion of the TCP was constraint to translation along z axis only. 
+
+this was not the purpose of course. 
+it also worked with the OL controller. 
+the controller was mostly from *cosim_unified_system_asm.slx* from the "tau without dspace" folder, another project that for some reason was private currently. 
+small changes had been made and currently it seemed working. 
+this had some old code in it. 
+the old code, and probably most of my code, as I mostly only borrowed from old code, was written with mm as the unit. 
+this should be kept in mind. 
+
+current status/problems with the implementation
+- due to quantization (I think), TAU would initialized 0.04 mm into the wall. it's better to fix this. 
+
+- that's why there's no delay before the disturbance anymore. otherwise the small push from the wall would mess up the whole system when there's zero friction. 
+
+- only the case at the origin was tested. it was not stable. the TCP would "vibrate" (bounce off the wall) more and more until it crossed singularity. 
+
+- a full user-hand model might enlarge the stable range of rendered stiffness. the current value is 1000 N/m, not too much
+
+- there's this "save to workspace" with `pose` that seemed unnecessary. needed to find a way to fix this. 
+
+- b/c of the unit difference (m vs. mm) and the borrowing of code, things like `L1` could conflict with *studyBaseline0.m*. needed to find a better way to do this so that every controller could be initialized properly. 
+
+- b/c TCP was bouncing, I didn't really check if it worked. I remembered I had a 10 N disturbance and the penetration looked about right. needed to look closer. 
+
+## misc
+- found the gear ratio in old code and now it's in *studyBaseline0.m*: for 1, 3, and 6 it's 10/100; for 2 and 4 it's 10/35; for 5 it's 10/130. this coincided with what I found before in a report or some other written paper form. 
+
+- also copied over functions needed: *FTtransform.m*, *skewVec3.m*, and *SM_FK.m*. the first two were for dependency reason. the last one was just for figuring things out. 
+
 # 20191024
-yesterday was 1023, which was 11111111. 
+yesterday was 1023, which was 1111111111. 
 ## built a simple model for user hand
 the user hand cannot be modeled as either pure motion or pure force. 
 the logical thing was to model it as a mass-spring-damper system. 
@@ -48,7 +240,7 @@ I was in a hurry so I didn't really think this through, you would see.
 
 whether or not this would work with what I previously did was still under the question. 
 but I thought it should. 
-~this was not really needed to build a baseline but for some reasons I started to do this.~ 
+~this was not really needed to build a baseline but for some reason I started to do this.~ 
 the reason why I started this instead of a real implementation of the baseline could be found in the previous paragraph. 
 it's needed, otherwise the baseline wouldn't work. 
 ok, the XY stage was needed but the hand modeling was probably not. 
@@ -878,7 +1070,7 @@ started *exeScript.m* from *exeInitPosScript.m* and failed
 tried to do it like Python `python script.py --option=some_options` but didn't find MATLAB's support for this. tried to do it like a MATLAB function with optional input arguments. this was also unsuccessful b/c there were some problems with which workspace (scope, function call and level of workspaces) to use when call `sim()`. there was an option `'SrcWorkspace','current'` that I could use but then the question became where were the numbers that were "saved to workspace"? this could be revisited but not the focus of the current study. 
 
 ## tried to sweep for good Q matrix again
-for some reasons, previous logs didn't have everything I wished to record. there was supposed to be one set of weights for position control and another for disturbance rejection. the set for disturbance rejection was not explicitly recorded in the log but I guess it's the one we were using this whole time: `posGain, errGain = (1e6, 1e9)`
+for some reason, previous logs didn't have everything I wished to record. there was supposed to be one set of weights for position control and another for disturbance rejection. the set for disturbance rejection was not explicitly recorded in the log but I guess it's the one we were using this whole time: `posGain, errGain = (1e6, 1e9)`
 
 this time it was for a different reason: we did the discretization of the system and I should be writing about this in a new journal paper. previously, with continuous time, I didn't implement encoder (quantization). so with the previous weights, the error was too small (too good) for the encoder to pick up. I might have a note on this, for previous simulation results, it was too good. there was no observable movement on the TCP when it was disturbed by a force. basically, it's not realistic. to achieve reasonable and good performance, I need to find a set of weights that, under a disturbance (now it's 20 N, previously it's 5 N), yielded a deviation of 5 times the resolution (0.0077). so maybe something around 0.01 rad. and it also had to recover fast. 
 
@@ -923,7 +1115,7 @@ the controller design, as before, was done in *lqrDisc.m*. `lqrd()` was used ins
 
 (20190609 as it turned out, in `lqrd()`, `dlqr()` was called probably. so `lqrd()` basically do continuous to discrete first, then called `dlqr()`)
 
-zero-order hold and quantizer were implemented and, surprisingly, not too much performance drop occurred. the computed control input for some reasons was oscillating all the time. as a result, all joints were moving all the time. this could be something to look into next.
+zero-order hold and quantizer were implemented and, surprisingly, not too much performance drop occurred. the computed control input for some reason was oscillating all the time. as a result, all joints were moving all the time. this could be something to look into next.
 
 I wonder if I should also put quantizer in the continuous time model. it seems that quantizer doesn't make the system discrete. time can be continuous but there is a smallest difference for the encoder.
 
@@ -1937,7 +2129,7 @@ all bars in Simscape were defined with the center of mass (CM) at the mid point 
 based on all these, init_torques_adm = [-359.3; 217.8; 359.5; 2.40; -0.22; -952.1] and init_torques_sim = [0.3630; -0.2233; -0.3630; 0.0063; 0; 0.9414]
 
 # 20180426
-for some reasons, the z axis of joint 4 in the ADAMS model is not point out.
+for some reason, the z axis of joint 4 in the ADAMS model is not point out.
 
 this introduced a sign-flip between ADAMS model and Simscape model
 

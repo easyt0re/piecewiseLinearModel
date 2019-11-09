@@ -1,6 +1,66 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20191109
+## failed to recreate things found in [1106 log](https://github.com/easyt0re/piecewiseLinearModel#20191106) on OL
+in misc, I logged that torque from joint 6 was perfectly 0. 
+this couldn't be recreated but the torque for 5 and 6 were very close to 0 while others were bouncing between saturation limits. 
+I suspected there was something wrong with the jacobian calculation but it's hard to check. 
+later, I seemed to have recreated the perfect 0. 
+it was still there. 
+previously, I did something wrong with the delay. 
+I would write this in another point. 
+
+I also reported that the max stiffness rendered was around 3000. 
+this couldn't be recreated exactly but the max was now a number below 3000 and it's actually changing. 
+the changing was probably due to my QP was changing. 
+then, ok, this was probably acceptable. 
+and "within" the able-to-render range, `minStiff` would only be about half the desired stiffness. 
+of course, this number had a very loose relationship with the real rendered stiffness. 
+
+## added user-hand model to the OL simulation model
+it did dramatically improve the stability of the rendering, almost no vibration. 
+changed a few things in *userHandInit.m* to get it to work. 
+
+I should have some description or figure to illustrate a little bit about how this hand model works. 
+the overall idea was not to define a pure motion or force on the TCP. 
+when no resistance, not hitting the wall, the hand and the TCP should move together, governed by the defined motion. 
+when hitting the wall, the TCP would stop while the hand would still move. 
+this sounded weird but this mismatch in motion created the force that the hand pushed onto the TCP. 
+in this way, the defined motion was turned into a force signal. 
+from now on, it should be the same as what I did previously, with a pure force signal. 
+the motion signal would first increase like a ramp and then stay flat. 
+consequently, the force signal would also have the same profile. 
+
+the params from the script were pretty straight-forward. 
+basically the hand was a cube mass and TCP was another. 
+they were connected by a spring and damper. 
+it should start by defining `hand_force`. 
+this should be the same as disturbance level. 
+divided by `hand_K`, this would be the amount of spring pressed when the hand would not move anymore. 
+after pressing, the spring should have a positive length. 
+I didn't really try the negative length thing. 
+I guessed the rest was self-explanatory. 
+
+`dLV = 0;` was added to *studyBaseline0.m* to turn off disturbance signal. 
+
+## ran 20 batches with new range 8 - 15 N
+as expected, everything seemed ok. 
+there was no extreme high point and the std should be down a lot. 
+
+## the idea of simulation
+I used to think that I should run 1 simulation on both controllers. 
+now that I had a pure force disturbance source and a hand model, I could have both instead of keeping only one. 
+the pure force probably represented sudden changes in the force. 
+the hand model probably represented gradual changes, maybe closer to real scenario. 
+
+then maybe, another thing to do was to also have noise and randomize capability in hand model. 
+
+## misc
+- the code was at a point where it could do many different things with different "configurations". I should note all of them down maybe before I found a more elegant way to do this. I started to have wrong simulations b/c I forgot to change 1 param or 2. 
+
+- the way to randomize level and get adaptive noise was changed in *runLargeScale.m*. 
+
 # 20191108
 ## the reason behind all of this not-so-useful work
 let's recap a little bit. 
@@ -35,9 +95,9 @@ this currently only worked when it's random level.
 ## too many more new things I would like to see
 - there was no collision detection in DMIMO so far. the controller was constantly active. that should affect the performance. 
 
-- the user-hand model was not included in either simulation models. it could improve OL's stability. 
+- ~the user-hand model was not included in either simulation models. it could improve OL's stability. ~ (added 20191109) 
 
-- now that "steady point" was introduced, maybe it's also good to see where it was. 
+- ~now that "steady point" was introduced, maybe it's also good to see where it was. ~ (added 20191109) 
 
 # 20191107
 ## achieved batch-wise constant disturbance level simulation

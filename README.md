@@ -1,6 +1,133 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20191108
+## the reason behind all of this not-so-useful work
+let's recap a little bit. 
+I was lost again. 
+this happened way too often than it should. 
+the reason why I did this constant level sweep was b/c 
+1) I had a feeling that under different level, the behavior of the data could be different, specifically, flat or ramp. 
+2) I felt like the mean of stiffness was a weighted sum of these "figures/numbers" and the weight was the distribution of the disturbance level over all batches. 
+
+from the sweep figures directly, the 1st point should be false. 
+but there was still a chance that I did something wrong. 
+maybe I should check further or do another round with higher resolution. 
+
+~the 2nd point was yet to be checked. 
+but I would like to see a stiffness over disturbance level plot, just to see if there was some correlation. ~ 
+I plotted 121 QPs stiffness over disturbance level in one plot. 
+I should learn by now that everything about this project is not "simple". 
+there's not going to be a simple pattern/behavior across all points. 
+it seemed that with level 8 - 15, the stiffness would be varying in a not-too-wide range, `[1.5, 4]`.
+you could push 8 to 5 and that's what I got from previous simulations (now 100 batches). 
+but below 5 was too much chaos in my opinion. 
+within 8 - 15, there were still "trends". 
+if everything was around a mean value, that would be great. 
+but for some QPs, stiffness would increase/decrease with a increasing disturbance level. 
+I guesses that's where the std came in. 
+
+## a potential bug with `isRandomLevel == 0`
+the bug would appear when constant level and with noise. 
+it's not really a "bug" but the noise would not be "adaptive" to the level. 
+this currently only worked when it's random level. 
+
+## too many more new things I would like to see
+- there was no collision detection in DMIMO so far. the controller was constantly active. that should affect the performance. 
+
+- the user-hand model was not included in either simulation models. it could improve OL's stability. 
+
+- now that "steady point" was introduced, maybe it's also good to see where it was. 
+
+# 20191107
+## achieved batch-wise constant disturbance level simulation
+my head was clearer than yesterday. 
+random level was achieved in *runLargeScale.m* b/c it set a random level for each QP within a whole batch. 
+for a constant level, that's not necessary. 
+every batch was done by running *runLargeScale.m* once, in which *disturb1DInit.m* was also initialized once. 
+so the constant level was defined in *disturb1DInit.m* 
+and just a note that, with random level, `setVariable` was used to setup `gridIn`. 
+but with constant level, this was probably achieved by passing `pulseAmp` across variable workspaces. 
+
+to save the figure from different level, I added *postConstLvSweep.m* based on *sumScript.m*. 
+but I realized that it's not that useful and actually *sumScript.m* could get the job done with an additional plotting for-loop. 
+
+currently the figures didn't really say anything much. 
+the figures were quite weird when below 5 N. 
+especially with 1 and 2 N, there were inf as well as stiffness lower than 10000. 
+currently I considered stiffness below 15000 low. 
+again, I couldn't really explain that. 
+as the disturbance level was decreasing, more and more points increased to inf but some points decreased. 
+the "increase to inf" part fitted my theory of high points but the other part didn't. 
+
+judging from all figures, the ramp effect seemed always there. 
+in a [previous log](https://github.com/easyt0re/piecewiseLinearModel#tried-a-few-things-and-thought-about-them) 
+I used to find stiffness under 5 N rather flat, scattered. 
+this was not visible in these simulations. 
+I wondered what could be the reason behind failing to recreate those results. 
+maybe it's the noise. 
+
+## added another set of metrics w.r.t steady point
+due to initialization and quantization, the TCP position before the disturbance was probably not the start reference point. 
+it could be in/out of wall but it's almost never just on the wall (`z = 0`).
+so there's actually this "steady point" that could be the "zero point" to check penetration. 
+previously, the "zero point" was the start reference point. 
+this was done in *postProcFcnLargeScale.m* and *sumScript.m*. 
+
+the figures were definitely different but it's hard to tell which was better. 
+and I believed both of them had problems in the calculation. 
+
+added a helper function to plot each batch. *plotEachBatchInVizSum.m*
+
+# 20191106
+## preliminary tests on OL
+with the unstable vibration aside, it was working. 
+although the highest rendered stiffness seemed to be around 3000. 
+this was 10 times smaller than DMIMO and this was the max stiffness. 
+it's max b/c of the saturation I guessed. 
+given a desirable stiffness higher than this, this would be what you really get. 
+with a low stiffness of 500, minStiff was 240 something. 
+so I thought it might be useful to see how "good" OL could render, meaning, maxStiff. 
+this was added to *postProcFcnLargeScale.m* .
+
+## a few changes in *postProcFcnLargeScale.m*
+apart from the above, the way to find start/stop time index was updated to change with the delay and pulse width of the disturbance. 
+this was b/c OL simulations had no delay while DMIMO had. 
+
+another thing added was to visualize disturbance level. 
+like I said in previous logs, I had a feeling that the disturbance level distribution affects the "stiffness" of this QP. 
+so this was added just to have some future reference. 
+this didn't take into account the noise. 
+
+and of course, the *sumScript.m* was also changed accordingly to get a summary of multiple batches of simulations.
+
+## constant level sweep
+I failed. 
+the current *runLargeScale.m* was supposed to run simulations automatically, with the disturbance level varying from 1 to 15 N. 
+but it didn't. 
+I could get the correct result if I ran manually. 
+maybe that's a good way to do it but I really wanted it to run automatically. 
+I felt like it's still the amplitude of the disturbance. 
+b/c it's running in loop, the value could accumulate with the use of code like `a = a * i;`. 
+either manually or fix this once and for all, I wouldn't have time today. 
+
+when I read my code, I noticed that if `isRandomLevel = 0`, there was no code to set disturbance level in the `gridIn`. 
+but then, how would my previous runs work? 
+is it really that this was never triggered in the past? a hidden bug? 
+I also enabled "TransferBaseWorkspaceVariables". 
+that could be the real reason, variables bleeding across workspace.
+alright, I would commit the code tomorrow. 
+hopefully, everything would be fixed by then.  
+
+## misc
+- it's been a while since I last checked joint torque. I had never checked joint torque for OL. it seemed that with 0 gravity, prismatic guide, and rendering a positive z force, joint torque 6 was perfectly 0. 
+
+- the "motor model" was mostly missing in my modeling. it's considered ideal. whatever torque the controller commanded, it would reach unless saturated. so the only motor model I had now was the saturation. 
+
+- saturation was added to OL controller. 
+
+- it might also be interesting to look at min of minStiff. after all, we were interested in min of the min. 
+
 # 20191105
 ## came back to work on baseline 0, OL
 I didn't really note down the current way to do simulation with OL. 
@@ -159,7 +286,7 @@ if my guesses were correct, 5 would give high points while 15 ramp effect.
 
 # 20191101
 ## tried a few things and thought about them
-tried 15 mm away from origin as OP and with 5 N disturbance. 
+tried 15 mm U/D/L/R away from origin as OP and with 5 N disturbance. 
 they didn't show anything very exciting. 
 the stiffness distribution was barely changing. 
 at this level, the ramp effect was barely showing. 

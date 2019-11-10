@@ -1,6 +1,82 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20191110
+## added *checkInvDyn.slx* to check steady state force rendering
+I had doubts about the mapping between joint torque and TCP force. 
+so I added this by modifying *simTAUcheckOTorq.slx* and adding force disturbance on TCP. 
+it's supposed to use *linAtOP.m* with it to check the joint torques. 
+the gravity was also turned off to only see the rendering force effect. 
+now I knew more things about TAU. 
+
+apparently, when rendering a z force, with 0 gravity or no gravity compensation, the points on x and y axes were quite "special". 
+along x axis (horizontal), joint 6 torque should be 0 or at least close to. 
+with the same force, the lower plane needed more from joint 6 than the upper plane. 
+this was actually in line with the ramp effect in stiffness. 
+along y axis (vertical), joint 5 torque should be 0. 
+this should be expected based on the mechanism. 
+so, one mystery solved and the calculation from rendered force to joint torque was considered correct now. 
+
+this file was probably not so useful. 
+currently it's only good for this. 
+
+## current performance of OL
+*userHandInit.m* was further modified. 
+there were some bugs that I hadn't thought of before and they were fixed. 
+most importantly, the stop position for TCP and hand. 
+**with the current params (10 N pressing) and only tested at the origin**, the rendered stiffness could reach 8000 - 8500. 
+above this number, the rendered stiffness from the scope started to oscillate a lot. 
+it was not until 13000 that the joints started to saturate. 
+12000 was still ok. 
+but again, keep in mind. this had to do with QP and pressing force. 
+I had some rough "stiffness calculation and scope" to monitor it. 
+it's not conclusive. 
+this number was found based on whether the stiffness from the scope was oscillating (too much), 
+whether any joint torques were saturated, 
+and whether the rendered force was stabilized at the corresponding level with the pressing force. 
+other things like the real oscillation in z position were not really considered. 
+
+ok. so, there was this case.
+when everything worked, rendering force (ref) should be the same as the rendered force and the pressing force. 
+everything should at a force balance. 
+but this was what happened: 
+with 10 N pressing, and if I desired to render a 20000 wall, 
+the rendering force would actually grow larger than 10 N. 
+this meant more penetration into the wall, hence larger rendering force as a reference signal. 
+but, ok, this was probably the effect of a large oscillation, not really a penetration. 
+and also b/c the desired stiffness was higher, magnifying the rendering force reference signal. 
+but, yeah, with a 8000 wall, you got a nicer stable end position. 
+
+b/c the "disturbance"was different now, the way to calculate "stiffness" should also be a bit different. 
+it could be a stable/mean value of the period where the pushing force was not changing anymore. 
+other metrics could also be kept but I had to take care of the zero-crossing behavior in position b/c it should oscillate around the wall, which was at 0. 
+
+how to compare the 2 (OL vs. DMIMO) was still a problem. 
+
+## added hand model and collision detection to DMIMO
+saved *disturbTest.slx* as *disturbTestAddHand.slx* to develop this. 
+the hand was added with no problem. 
+the XY stage was set to passive. 
+I thought it's ok to have both. 
+added CDMIMO as the controller. 
+the performance was too good when using the hand as disturbance. 
+then, collision detection was also added. 
+it was implemented with a 1D look-up table and "nearest" method. 
+the signal was directly measured from the model as what I did with MOP. 
+this could be replaced by what's used in OL (ForKin). 
+
+after adding collision detection, the performance dropped a little. 
+more importantly, b/c at one point, all force would be deactivated, TCP would free fall a little until it's reactivated again. 
+then my question was, would it be possible to separate the two? 
+obviously, one was gravity compensation while the other force rendering. 
+the later should be turned off while the prior should be kept. 
+if possible, this would be a real controller for all workspace for all time. 
+
+## misc
+- the simulation time was increase to 2 s for the system to stabilize. 
+
+- there were so many things implemented with problems. it's not well-parameterized. more work needed to be done for more complex cases. 
+
 # 20191109
 ## failed to recreate things found in [1106 log](https://github.com/easyt0re/piecewiseLinearModel#20191106) on OL
 in misc, I logged that torque from joint 6 was perfectly 0. 

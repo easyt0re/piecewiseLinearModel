@@ -1,6 +1,112 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20191111
+single's day
+## fixed the free fall in *disturbTestAddHand.slx*
+after a little bit of thinking, I realized I made a mistake. 
+the gravity compensation and the force rendering could be separated very easily. 
+the force compensation for the linearized point was actually the gravity compensation part. 
+so I moved the "Product" block upstream a little bit, before this offset compensation, so that it would always be there. 
+the outside signal would only "turn off" the force rendering part. 
+
+the logic for on/off was also evolved. 
+for "z direction", in wall should turn on.
+for other directions, large deviation should turn on. 
+it worked. it's just that it's switching quite a lot. 
+
+## revisited *disturbTestBaseOL.slx* ~but failed~
+ok, I made another mistake. 
+when I had a working *disturbTestBaseOL.slx*, I should have left it there and saved as *disturbTestBaseOLAddHand.slx* to develop hand model. 
+so now, I didn't really have the old version of *disturbTestBaseOL.slx*. 
+so I made 2 copies of the latest version, which was with OL and hand model, named it as the old one, and deleted the hand model. 
+for some reason, it looked even shakier than before. 
+maybe it's just me. I'm used to the steadier version now. 
+
+the reason why to revive this was to have both disturbance source as 2 cases. 
+but here were some of the things that might make this case not really working. 
+- it's just too shaky regardless of the stiffness of the wall. 
+
+- for pure force, I had a delay in the front and a release in the end. the delay was fine with OL but the release would just set the TCP flying out. this was not the case for DMIMO b/c it's still activated all the time. maybe after adding collision detection, this would happen to CDMIMO as well. on a second thought, this could be better when there was noise, or worse. 
+
+nonetheless, this had to be done. 
+there had to be a way to compare the 2 controllers somehow. 
+added new metric to evaluate OL pure force. 
+the mean deviation under the pressing period. 
+but no metrics could save OL pure force. too much oscillation. 
+changed the mean of the period to the mean of the period that's actually in the wall to avoid positive mean penetration.
+with high stiffness setting (currently 50000), this new metric was at a level comparable with minStiff. 
+with low stiffness (5000), the calculated result would be too far off (10000+). 
+if 10000 or 20000 was desired, this metric would kinda follow closely. 
+the max of this metric was probably around 30000. 
+there seemed to be no telling which of the following would result closer to 30000: 
+`4e4, 5e4, 8e4, 10e4`. 
+maybe I could do a little bit of sweep here. 
+
+in this way, I wouldn't say it's failed but it's close. 
+at least, I could write about it. 
+whether or not this would make sense would be another story. 
+
+## OL pure force simulations
+did both random level with new range (8 - 15) and sweep from 1 - 15. 
+the wall was set to 50000. 
+
+I didn't really look into it closely but the difference between upper and lower half of the plane was more severe. 
+the bound for `imagesc()` had to change, meaning I might need to update all plots. 
+I still had to find a good story behind choosing this "new" metric. 
+
+the sweep was also straight-forward. 
+the 1 - 5 vs. 8 - 15 effect was not really showing like DMIMO. 
+DMIMO 8 - 15 was flat. 
+OL 8 - 15 was like a continuation of 1 - 8. 
+it looked like $y = 1/x$. 
+another thing worth noting was the figures for each level was super symmetric. 
+the left half was probably identical to the right. 
+it could the result of 0 gravity. 
+another way to look at it, gravity actually contributed to the asymmetry of TAU. 
+
+## simulation with hand as source
+I would like to set down a few things. 
+
+maybe it would be good to keep the simulation time at 1.5 s. 
+then maybe 0.5 s of ramp and 1 s of flat for it to stable. 
+simulation time currently was set in *disturb1DInit.m*. 
+it should be set in *userHandInit.m* for this. 
+now that we had different slx files for pure force or hand, we could really separate them.  
+the force level should be able to be randomized and the noise should be added. 
+(a thought on noise was that the current white noise was with high frequency. 
+it's more like a sensory noise, not a shaking hand noise. 
+for that, it should be 2 - 10 Hz. 
+it's not really needed or relevant but it's a thought.) 
+
+maybe I needed to have a set of new scripts for single run, large scale, and post-processing. 
+
+the hope was that it would not enter/penetrate the wall. 
+
+## a cumulated list of simulation configs for various cases
+in the end, more and more things should be the same. 
+### OL, pure force, random level w/ noise
+- model: *disturbTestBaseOL.slx*
+- in *studyBaseline0.m*, comment out `dLV = 0;`  
+- in *userHandInit.m*, `isWallKSet = 1;`
+- in *disturb1DInit.m*, check `addNoise, isRandomLevel` 
+- currently, random level wouldn't work in single run. you may need to specify `dLV` yourself. 
+- single time: `studyBaseline0; userHandInit; exeScript;` 
+- large scale: remember to bring the simulink library I built for OL and also *FTtransform.m*, *skewVec3.m*  
+
+### for single run post-processing
+this section break point was now added to the script. 
+these were probably also needed: `idxQP = 1; ref_pose_ini = start_pose; pulseAmp_ini=- dLV;`
+
+## misc
+- *userHandInit.m* maybe needed some rework. some of the code was needed for OL. the other part was needed for the hand model.  
+
+- cleaned the signal logging in *disturbTestBaseOL.slx* for *runLargeScale.m*. also made changes to the script accordingly. 
+
+- today's commit could be a reference for configs/params as to how to run OL pure force simulations. 
+
+- added *collisionDetectInit.m* for initializing look-up tables in CDMIMO. 
+
 # 20191110
 ## added *checkInvDyn.slx* to check steady state force rendering
 I had doubts about the mapping between joint torque and TCP force. 

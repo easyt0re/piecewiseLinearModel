@@ -1,6 +1,44 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# 20191112
+it's CRAZY and I was losing it.
+
+## failed to use *runLargeScale.m* to run CDMIMO simulations in general
+the point of CDMIMO was that there was collision detection. 
+however, that was initialized by a script and based on the position of QPs.
+I didn't find a good way to implement this. 
+that part had to be specified for each QP. 
+that's just ugly to do and not so "compatible" with my current script. 
+there's a way of having a `SetupFcn` in `parsim()` but I failed to implement that. 
+
+I could give it another go another day but right now I was running out of time. 
+this would happen to any CDMIMO simulations although I was trying to do this with pure force. 
+on a high level, Lei once said that it's not good that your controller should change with your hardware. 
+we were talking about including encoder resolution in controller and that's bad in his opinion. 
+this was probably similar. 
+maybe it shouldn't be based on QPs but rather collision points. 
+
+I would like to have this b/c I felt like this is the only thing that's different for the 2 controller and would have a large impact on the performance. 
+but maybe it's not that important right now and we could do it next time. 
+
+## misc
+- directly copied CDMIMO controller from *disturbTestAddHand.slx* to *disturbTest.slx* and saved. 
+
+- ~moved position init section to before control structure related section in *exeScript.m* (why didn't I do this earlier?). ~ 
+
+- this couldn't be done b/c *linAtOP.m* reinitialized `init_joints_p_sim` due to naming issues. most of my code and models were copied and pasted. many things had the same name but served different purposes now. moved `start_pose` and `stopp_pose` forward instead. 
+
+- fixed the unit problem in *collisionDetectInit.m*. I couldn't believe I still made those. 
+
+- modified *exeScript.m* to support running it with CDMIMO. and also probably OL, not tested. 
+
+- added more stuff to plot in *plotStiff.m* and also comments about them. this was more like a "notebook" b/c things were supposed to run in sections. more comments to come. 
+
+- added local maxima based metrics in *postProcFcnLargeScale.m* and *sumScript.m*. 
+
+- after adding all these metrics, the current problem was: if I would like to delete one, I had to modified a lot. 
+
 # 20191111
 single's day
 ## fixed the free fall in *disturbTestAddHand.slx*

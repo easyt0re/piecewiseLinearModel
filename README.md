@@ -1,6 +1,154 @@
 # piecewiseLinearModel
 This is a log for the development of the piece-wise linear model of our system
 
+# pin at the top
+## things for the day
+- [ ] get the hand disturbance to work for both controllers single/large-scale run
+
+- [ ] get the post-processing to work for the hand
+
+- [ ] stop at one point and write
+
+## things in the dump
+### implementation
+- unite the XY stage (merge OL and DMIMO)
+- collision detection for DMIMO
+- a more comprehensive sweep for the stable stiffness of the wall with OL
+- rewrite *userHandInit.m*
+- do collision detection with a region instead of a line (dead-zone/dead-band)
+- do documentation for all the save files and figures
+
+### additional checks
+- move configs to the top as well
+- check the distribution of the disturbance level for a set of (20-batch) simulations
+
+### future traps
+- do everything in task space instead of joint space
+- have different constraints on different directions
+- distinguish joint torque and motor torque (the modeling of gear ratio)
+- increase the dimension of the case (more complex wall)
+
+# 20191117
+## implemented "trajectory planning" for the hand motion
+this was the attempt to get rid of the jumps in spring force at the start and stop of the motion. 
+the reason for that jump seemed to be sudden huge change in acceleration. 
+I thought about doing acceleration with sine wave or saw tooth but they were a bit hard to calculate. 
+I ended up using square wave or wide pulse, meaning the acceleration was always constant but there was still a jump from 0 to that level. 
+I almost gave this up and got back to sine wave. 
+but I noticed that if the acceleration period was long enough, the spring force was rather ok. 
+with a 15 N hand force, the max spring force would be around 16 N. 
+with some noise, it was still manageable. 
+
+this was just making the simulation more realistic, the signal more physical-like. 
+I could make it with a sine wave generator but it would take more time. 
+for now let's keep it as it is.
+the script added was *handTrajPlan.m*. 
+currently it's a script but it could be integrated into *userHandInit.m* or the function version. 
+
+## ran *runLargeScaleHand.m* again
+on my laptop I only ran 3x3. 
+the position plots for the 4 corners had something strange. 
+their performance was not so good and they also seemed to have a problem just to keep the TCP there. 
+I believed this was the case when there was no hand model. 
+did I somehow introduced something bad with the hand, or is this finally the linearization effect I had been waiting? 
+
+the post-processing was ok. 
+many things didn't work anymore but this mean stiffness based on steady point seemed to be promising. 
+otherwise, I thought it was still possible to find max penetration and use that. 
+these seemed to be the more robust metrics regardless of the controller and the disturbance signal. 
+
+## misc
+- b/c now I had *userHandInit.m* and *userHandInitFcn.m* separately, it's important to keep them synced. 
+
+- a flag was added in *disturb1DInit.m* just to turn of the disturbance. together with the flag that shut off noise, this guaranteed a 0 output from the pure force source. 
+
+- now the delay and the moving time were both set to 1 s, just for things to settle better. 
+
+# 20191116
+## potential bug in running *runLargeScaleHand.m*
+*runLargeScaleHand.m* and *postProcFcnLargeScaleHand.m* were added separately to do the thing with hand. 
+but there might be a bug in initializing. 
+influenced by the previous version of the script, only random level of hand force and adaptive noise was defined for each simulation. 
+but this might not work correctly b/c hand disturbance was not governed by only 1 number (hand force). 
+
+so the solution was to rewrite *userHandInit.m* as a function (*userHandInitFcn.m*) instead of a script. 
+again, this was not used as a `SetupFcn` for `parsim()` but rather just a function used in the routine to setup `gridIn`. 
+many things were manually set but it seemed working. 
+this was committed as a version to see the config for this simulation. 
+
+## misc
+- the simulation was probably not fixed-step. this mattered when I took the mean. if the out-lier part was "sampled" more, it could affect the mean more. 
+
+# 20191115
+I thought I should start a section that would always be pinned at the top. 
+I would use it as a to-do list for the day to motivate me and have a sense of achievement. 
+should have thought of this earlier. 
+it made so much sense. 
+
+## preliminary 3x3 runs on DMIMO with hand
+from the plots, it's mostly as expected. 
+there was an initial wiggle when initialized. 
+that's why we had a delay to separate that. 
+then there's the first jump when the hand started to move. 
+there's also another when it stopped moving. 
+these 2 jumps were a bit annoying yet currently I had no ways to eliminate them. 
+sudden changes in the force would of course accompanied by changes in position. 
+it would really be better to get rid of them. 
+otherwise, I needed some other ways to avoid analyzing that part. 
+
+ok, it should be the discontinuity in velocity or acceleration 
+b/c the "trajectory" I gave to the hand was "physically" impossible. 
+I could do some more "design" about the trajectory but it could be an overkill. 
+
+other than the 2 bumps in position, the performance should be pretty consistent. 
+if pure force test was more about sudden changes and worst case scenarios, 
+this hand case could be more about mean performance b/c it didn't change much. 
+of course this could be divided into 2 periods: whether the force was changing or not. 
+
+## misc
+- cleaned and collected most of the to-do objects. put them on top. 
+
+# 20191114
+idk but maybe it's time to split things up. 
+## some history and the "file system"
+the *disturbTest.slx* was first developed and for all purpose really. 
+it worked with *exeScript.m* and *runLargeScale.m* with a few controllers. 
+but as we have 2 types of disturbance signal now, this file was actually for pure force only. 
+b/c OL controller needed zero gravity, active XY stage, and prismatic guide, 
+OL related files were created. 
+currently, I didn't really see a way to combine OL with other controllers. 
+if the XY stage could be passive, maybe it could. 
+but that's just an implementation detail and not really important. 
+then the last thing was to add hand model in each of these 2 files. 
+this caused new files as well. 
+the pure force could be easily turned off but not for the hand. 
+
+and b/c the model file and the initializing scripts were all different, 
+I might as well develop different script for large-scale simulations and post-processing. 
+this could be integrated later if needed. 
+
+## DMIMO with hand simulation
+- the simulation time of *disturbTestAddHand.slx* was governed by *userHandInit.m* now. 
+- similar delay was added in the front of the hand motion. 
+- *disturb1DInit.m* was still used for flags and noise. pure force disturbance was turned off by setting `dLV = 0;`.
+- a noise for the hand was added to the motion of the hand rather than the force directly. 
+
+# 20191113
+## meeting notes
+maybe I should change the dynamic and purpose of the meeting. 
+maybe I should do "report" less. 
+maybe they didn't care about what I did as long as I published papers. 
+Lei left earlier. maybe I should catch up with him about the decisions. 
+
+### decisions made
+- the new outline was ok. 
+- talk is cheap. show me the draft. 
+- don't start over, get it done. 
+- more figures. 
+- pure force on OL was not good but keep it for now. 
+- CDMIMO should not be here (if it's time-consuming?). 
+- try to turn off gravity in DMIMO. 
+
 # 20191112
 it's CRAZY and I was losing it.
 
@@ -125,12 +273,20 @@ the hope was that it would not enter/penetrate the wall.
 in the end, more and more things should be the same. 
 ### OL, pure force, random level w/ noise
 - model: *disturbTestBaseOL.slx*
-- in *studyBaseline0.m*, comment out `dLV = 0;`  
+- in *studyBaseline0.m*, comment out `dLV = 0;` 
 - in *userHandInit.m*, `isWallKSet = 1;`
 - in *disturb1DInit.m*, check `addNoise, isRandomLevel` 
 - currently, random level wouldn't work in single run. you may need to specify `dLV` yourself. 
 - single time: `studyBaseline0; userHandInit; exeScript;` 
-- large scale: remember to bring the simulink library I built for OL and also *FTtransform.m*, *skewVec3.m*  
+- large scale: remember to bring the simulink library I built for OL and also *FTtransform.m*, *skewVec3.m* 
+
+### DMIMO, hand force, random level w/ noise
+- model: *disturbTestAddHand.slx*
+- in *userHandInit.m*, `isWallKSet = 0;`
+- in *disturb1DInit.m*, check `addNoise == 0, isRandomLevel == 1` 
+- currently, random level wouldn't work in single run. 
+- single time: still missing 
+- large scale: use the script *runLargeScaleHand.m* 
 
 ### for single run post-processing
 this section break point was now added to the script. 
@@ -213,7 +369,7 @@ after adding collision detection, the performance dropped a little.
 more importantly, b/c at one point, all force would be deactivated, TCP would free fall a little until it's reactivated again. 
 then my question was, would it be possible to separate the two? 
 obviously, one was gravity compensation while the other force rendering. 
-the later should be turned off while the prior should be kept. 
+the latter should be turned off while the prior should be kept. 
 if possible, this would be a real controller for all workspace for all time. 
 
 ## misc
@@ -1021,7 +1177,7 @@ thus, this could also be a **TODO** list.
 
 - [ ] distinguish joint torque and motor torque (the modeling of gear ratio)
 
-- [ ] do everything with error instead of position
+- [ ] ~do everything with error instead of position~
 
 after listing everything here, it doesn't seem like much and maybe it IS something that I can really do. 
 now, although some of this should be repeating old notes, I would like to list the reasons behind these re-dos.

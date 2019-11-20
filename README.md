@@ -13,9 +13,10 @@ This is a log for the development of the piece-wise linear model of our system
 ### implementation
 - unite the XY stage (merge OL and DMIMO)
 - collision detection for DMIMO
+- turn off gravity for DMIMO
 - a more comprehensive sweep for the stable stiffness of the wall with OL
 - rewrite *userHandInit.m*
-- do collision detection with a region instead of a line (dead-zone/dead-band)
+- ~do collision detection with a region instead of a line (dead-zone/dead-band)~ this was implemented to some extent. (20191119)
 - do documentation for all the save files and figures
 
 ### additional checks
@@ -27,6 +28,104 @@ This is a log for the development of the piece-wise linear model of our system
 - have different constraints on different directions
 - distinguish joint torque and motor torque (the modeling of gear ratio)
 - increase the dimension of the case (more complex wall)
+
+# 20191119
+## hand on OL
+I probably made a few bold comments on how the hand model would make the OL better. 
+it's probably better but not that significantly better. 
+the stiffness of the wall was decreased from 50000 to 7000 and I still saw oscillation. 
+the step was 1000. 
+7000 gave an oscillation within 1 mm, which was maybe acceptable. 
+everything was tested at QP(25, 25). 
+
+## a change of noise
+for the noise in the hand disturbance, I used to introduce it in the motion signal I gave it to the "hand". 
+I also had a hard time trying to get the correct gain for it b/c it's not what I calculated. 
+instead I tried a bunch of gains and settled with one that's ok. 
+this was also probably why the noise shouldn't be implemented like this. 
+
+ok, let's back up a little bit. 
+the noise right now was done in a way that it introduced a noise in the motion signal for the hand. 
+this in turn would induce a noise in the force from the spring-damper connection. 
+however, b/c it's a spring-damper system, the force was related to displacement as well as velocity. 
+when using white noise in position signal, I introduced sudden changes in position, inf velocity. 
+this made the damping force dominant against spring force. 
+when the frequency of the noise was high, this was hard to notice. 
+there was noise and it was quite noisy. 
+with the correct gain (this was why for previous paragraph), the range of the noise was also fine. 
+but when the frequency was low, you could see that there was just a pulse in the force when velocity was inf. 
+the spring force/effect was hard to observe. 
+that's why I needed magic number gain for the noise b/c it's not dominated by spring force, thus couldn't be calculated. 
+a side note of the reason why I tried low frequency white noise: 
+I had a feeling that this frequency was messing things up a little bit, 
+plus I felt like hand motion noise could be something around 2 - 10 Hz, as I mentioned somewhere before. 
+
+lesson learned: never use a math signal (especially a discrete one) as a physical signal. 
+I did it with the noise and also with the trajectory planner. 
+the next was not a good move but I would use the noise from the pure force to have that effect. 
+it was ok but then the noise could be a pulling force in the very beginning of the pushing period., giving TCP a positive movement. 
+this was not good and it was changed that only apply the noise when holding still. 
+I didn't run into this problem before b/c in pure force, when the disturbance was on, it's always with a large enough amplitude. 
+it didn't have this period of gradual increasing. 
+
+## changed VE quite a bit
+changed `isCollision` flag to a `persistent`. 
+changed the dead-zone/dead-band of the wall to +/- 0.1 mm 
+b/c there was some positive motion with TCP I couldn't explain. 
+later I discovered that although TCP z coordinate looked fine (no collision), 
+the FK calculation would put TCP into the wall, hence collision. 
+this demonstrated some problems with FK guessing the TCP position. 
+there was also error in that. 
+based on this, changed this region to +/- 0.1 mm to avoid false detection. 
+maybe a little to big but it worked fine for now. 
+
+combining with the persistent flag, it meant that 
+for collision to happen, you had to press into the wall for more than 0.1 mm. 
+after that, for it to come out (change the flag), you have to be at least 0.1 mm away from the wall. 
+9x9 seemed fine. 
+all strange positive movements were gone. 
+
+## misc
+- changed *userHandInitFcn.m* to take another input `wall_K` b/c this was often subject to changes and it would be easier to just change it in the script version. 
+
+- directly changed the gain on the hand noise signal to be 0, just to make sure it's dead. used to be `hand_noise_gain`. 
+
+# 20191118
+happy b-day master tongtong! 
+## things happened in DMIMO hand large scale
+when I was running 3x3, I reported that there were some "strange jumps" in TCP z position. 
+now that I ran 11x11, this was still visible for quite a portion of all QPs. 
+apart from this, there were some other things happening. 
+I should have some figures here but some showed that once it's pressed, it actually had a penetration and it's hard to overcome that. 
+penetration like "a dip" (what I used to have) was rare. 
+now it's rather flat. 
+sometimes it's pushed in and stayed there. 
+sometimes it's pushed in for a little while and overcame it. 
+sometimes it's oscillating a little bit between these 2 levels. 
+
+should I pay attention to this? 
+honestly, Idk. 
+the first thing I thought of was saturation or the effect of the high frequency noise. 
+but it's most likely not the case. 
+the "push in" happened mostly around 4 - 6 N, too low to saturate. 
+I turned off noise to see if that helped but it's more or less the same. 
+so my current guess would be quantization. 
+and I should not think about it b/c it's not that much of a deviation. 
+
+I didn't really do a constant level sweep with the hand model. 
+maybe I should do that now that it's running. 
+~for some reason, the simulation was longer (used to be 1.5 s, now 3 s) but the time to get all the simulation done was shorter, about 15 min for 11x11. ~
+I remembered it wrong. 
+the simulation was indeed longer. 
+1 batch of 11x11 now ran around 3 min, making the whole set of 20 batches around 1 hour (50 min as it seemed). 
+the size of the save file varied w/o noise. 
+this was understandable. 
+w/ noise, it's 120 M while w/o it's 70 M. 
+with noise and longer time, each simulation was with 4800+ (time) points. 
+it was used to be around 1500. 
+
+## misc
+- added a flag for hand noise. it's used in the step signal that's governing the noise. this was only added to *userHandInit.m* but not the function version. 
 
 # 20191117
 ## implemented "trajectory planning" for the hand motion

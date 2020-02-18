@@ -29,6 +29,95 @@ This is a log for the development of the piece-wise linear model of our system
 - distinguish joint torque and motor torque (the modeling of gear ratio)
 - increase the dimension of the case (more complex wall)
 
+# 20200217
+come back to implementation again. i like it. 
+## new ideas about MOP
+I implemented MOP before. it's not that successful. 
+the problem was, the switching behavior on the boundary can be unstable. 
+Lei said a few things about this. 
+
+first of all, in general, it's not a good thing to switch when the controller has integral. 
+integral basically means considering the past. when I do simple switch, there is no past "memory". 
+integral seems to need some time to build up. 
+
+based on this first point, here comes the second point. 
+maybe we shouldn't do a lot of switching in the first place. 
+instead of switching on the fly, the logic should be, whenever the collision happens, stick to the controller in that instant. 
+so there is no switching. this is probably not gain scheduling anymore. 
+
+so the real implementation would actually be still using DMIMO controller with different gains specified before the simulation starts. 
+b/c we already know the starting point of the simulation, there is no need to choose the gain or switch. 
+
+implemented in *exeScript.m* and seemed working. 
+
+# 20191127
+implementation was again in the way of writing. 
+## damping in the system
+at least from what I read, adding damping in the wall model, 
+in other words, modeling the wall as a spring-damper system instead of just a spring, 
+wouldn't help to get the system stable. 
+I found $b > KT/2 + B$ in the handbook of robotics: haptics section. 
+upper case is for the wall. lower case is for the device. 
+and I also found $k_e < min(2b/T, 2f_c/\delta)$ in [this stiff wall paper](https://doi.org/10.1109/TOH.2019.2893926), 
+which is actually referring to [A. Okamura's paper](https://doi.org/10.1109/TRO.2005.851377). 
+the second one should be an extension of the first one. 
+despite of their mathematical form, I personally regarded them as guideline or "rule of thumb". 
+
+## did some reading and learned some words and knowledge
+- sustained or growing oscillation
+- an order of magnitude
+- velocity filter: first order 30 Hz cutoff
+- it is well-known that quantization can lead to limit cycles in digital control systems 
+- An impedance was considered achievable if a person could not elicit visually apparent sustained oscillations from the manipulandum handle
+
+# 20191126
+## meeting notes
+- add the 3 chain conceptual block about TAU figure in the modeling Simulink model part
+- check all the figures made or used in the presentations. some of them are quite good
+- write more about Monte-Carlo simulation: how the numbers are randomized and based on which distribution
+- make sure a clear mentioning of 1-point only linearization
+- add more theoretical stuff for discrete time modeling, formulation of the optimization, objective function
+- add damping to make the OL look better
+
+# 20191122
+ok. I really should stop developing (implementing). 
+
+## tests on OL pure force range of stable wall stiffness
+ok. first, something I never thought about. 
+the wall was at `z = 0`. 
+the max penetration due to workspace depth should be 0.025 mm. 
+let's just say max force would be 15 N, making the minimal (?) stiffness 600. 
+b/c if I tried to render a stiffness lower than 600, with a 15 N force, it would move out of the workspace.  
+
+~it's just low. 
+300 was ok.
+400 wasn't able to stabilize itself within 1 s. 
+350 was barely stable at the end of 1 s. 
+with a step of 100, 700 was like the 0 damping oscillation. 
+800 started to diverge, amplitude of oscillation increasing. ~ 
+so it turned out that those "stable" cases above were b/c I set a limit of the TCP motion. 
+
+so it's a problem now. 
+I didn't really have a stable stiffness. 
+and when the limit was really the workspace boundary, the real minimal stiffness that's not going to hit the limit was actually 1000. 
+so let's just say the "feasible stiffness" range should be larger than 1000. 
+but in this range, I couldn't find a value that's stable. 
+
+## modified all the post-processing (and summary) scripts with saturation flag
+I suddenly felt like maybe it's helpful to take a look at joint torques and see if saturated. 
+this was added in the hope that it would help me find the "right" stiffness better. 
+but on a second thought, after I implemented everything, saturation could be related more to the force level rather than rendering stiffness. 
+nonetheless, maybe I could process the sweep data again to see. 
+
+## misc
+- updated *TAU_Lib.slx* to have VE as one block. this was the VE block from *disturbTestBaseOLAddHand.slx*. in this way, updated the VE block in *disturbTestBaseOL.slx* with all the persistent variables and "range" wall instead of a "line" wall. 
+
+- added `isHand` flag to better separate the code. 
+
+- added a scope in *disturbTestBaseOL.slx* to check if the motion limits were active. 
+
+- added the random level thing from large scale to *exeScript.m* for OL
+
 # 20191119
 ## hand on OL
 I probably made a few bold comments on how the hand model would make the OL better. 

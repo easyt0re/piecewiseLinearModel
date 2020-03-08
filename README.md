@@ -11,6 +11,7 @@ This is a log for the development of the piece-wise linear model of our system
 
 ## things in the dump
 ### implementation
+-  modify *userHandInit.m* to isolate no hand situation
 - unite the XY stage (merge OL and DMIMO)
 - collision detection for DMIMO
 - turn off gravity for DMIMO
@@ -28,6 +29,30 @@ This is a log for the development of the piece-wise linear model of our system
 - have different constraints on different directions
 - distinguish joint torque and motor torque (the modeling of gear ratio)
 - increase the dimension of the case (more complex wall)
+
+# 20200308
+not too much, not too important today.
+## misc
+- started MATLAB project for developing MOP further on
+
+- although the names were the same, "controller gains" in this new version were newly generated with more info (LinOP, Q matrix)
+
+- new metrics seem to be needed
+
+# 20200307
+## fixed difference in Q matrix
+there were some mismatches in the previous test. 
+to recap, SDMOP didn't perform better than DMIMO. 
+a closer look revealed that SDMOP didn't have the same performance when OP and QP are the same. 
+a bug was found that the Q matrix used in the *genMultiOPs.m* was different from that of *linScript.m*. 
+I should save more things in the saved gains. 
+
+# 20200218
+## implemented SDMOP in *runLargeScale.m*
+with LQR based controllers, or in general, the performance for pure force is worse than that for hand force. 
+so we chose to implement pure force first. 
+with the work from yesterday, the implementation was simple. 
+however, with some quick tests, SDMOP didn't seem to out perform DMIMO, even on the OPs. 
 
 # 20200217
 come back to implementation again. i like it. 

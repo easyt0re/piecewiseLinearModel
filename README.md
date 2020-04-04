@@ -30,6 +30,36 @@ This is a log for the development of the piece-wise linear model of our system
 - distinguish joint torque and motor torque (the modeling of gear ratio)
 - increase the dimension of the case (more complex wall)
 
+# 20200404
+## added *postProcFcnDeviation.m* for position error
+b/c I didn't want to add more things to the *postProcFcnLargeScale.m*, so I made this additional post processing script. 
+this can be incorporated into the "main file" later. 
+
+for the sum script, I modified the *sumScript.m* directly. 
+instead of loading everything, I tried to load what's really needed this time to shorten the loading time. 
+should be a clever thing to do in general. 
+
+## added a script and a helper function to draw the "9 plots"
+the main file was *plotSOPMOP9.m* and the function was *myPlotPos.m*. 
+at first, this was done with `subplot()` but later, b/c I wanted to modify the distance between subplots, I searched for a solution and this `axes()` method showed up. 
+these 2 files include functionalities like: 
+how to specify figure size, figure margin on 4 sides, figure distance in between, and get rid of ticks. 
+I didn't fully understand the function *myPlotPos.m* but I knew how to achieve my goals with it. 
+I thought it's a nice piece of code and I wasn't using all of it. 
+
+## misc
+- added code like `pwd` to *runLargeScale.m* to have results saved to a certain folder
+- added a few things in *exeScript.m* to do angled wall but didn't follow it through
+- modified Q matrix in *genMultiOPs.m* to have the same "high" gain like *linScript.m*
+- added a few thing to do the angled wall
+- I might need to reshuffle the files a little bit now that it's a project
+
+# 20200311
+## the angled wall implementation
+first thing to remember: it cannot have a large angle. 
+10 degree seemed to be fine and let's start from there. 
+more things needed to be tested. 
+
 # 20200308
 not too much, not too important today.
 ## misc

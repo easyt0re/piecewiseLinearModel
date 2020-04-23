@@ -3,11 +3,13 @@ This is a log for the development of the piece-wise linear model of our system
 
 # pin at the top
 ## things for the day
-- [ ] get the hand disturbance to work for both controllers single/large-scale run
+- [ ] put all flags at one place and optimize them
 
-- [ ] get the post-processing to work for the hand
+- [ ] find the correct scenarios for the simulation
 
-- [ ] stop at one point and write
+- [ ] automate the selection of files and scripts with different controllers and scenarios
+
+- [ ] write a new post-processing script
 
 ## things in the dump
 ### implementation
@@ -29,6 +31,123 @@ This is a log for the development of the piece-wise linear model of our system
 - have different constraints on different directions
 - distinguish joint torque and motor torque (the modeling of gear ratio)
 - increase the dimension of the case (more complex wall)
+
+# 20200423
+current git commit corresponded to "v1" results.
+
+## choice of metrics, again
+to reiterate, choosing one (basic) metric was possible 
+but the performance for all controllers would not be comparable. 
+so "a" metric was needed such that the performance for OL would be OK and represent our definition 
+and the performance for LQR would be reasonable (not too good). 
+
+during the writing of the journal paper, I felt like my choice of metrics was "too picky", 
+in the way that I had to define it in every detail instead of a general, well-accepted thingy like RMSE. 
+this time, I tried to stick to the basics and, as Lei suggested, differentiate concept and implementation. 
+that's the reason behind rewriting the post-processing script. 
+of course, the other main reason was that the old one wouldn't work for this new one. 
+
+the idea behind the choice was still the same: one for the impact/worst/minimal and one for the steady.
+the minimal was pretty straight forward with basically a `min()` command. 
+the steady currently had 2. 
+it seems that for OL, `forceOverMeanDeviat` is the way to go, giving a value around 6000. 
+for LQR based approaches, `meanOfInst` seems better with no negative value. 
+it should be note that, for LQR it's still quite "noisy" as the result was quite sensitive to small changes in penetration. 
+it's probably OK to use both for they were 2 different implementations from the same concept. 
+another thing to do would be to tune `idealWallLim` in *postProcFcnLargeScale3d.m* (**TODO**)
+this value was the "cutoff" value and it would probably affect the mean value. 
+
+## misc
+- made *plotStiffLoop.m* from *plotStiff.m* b/c of too many plots now
+- learned a few tricks with the "not recommended" `eval()` from MATLAB
+- the current value for `idealWallLim` was `1e6`
+
+# 20200420
+CODE, CODE, CODE!
+## added OL3D controller
+the important part was added the "not so simple" virtual wall. 
+the name was also OK b/c it really was a 3-DOF wall instead of a "6-DOF" one. 
+the detailed implementation could be seen in the block.
+there's a collision "pose", a measured pose, and a surface normal basically. 
+the difference of the 2 poses (actually only position) was a vector 
+and the dot product with the surface normal is the motion along the surface normal direction. 
+we used these things to do collision detection and force computing. 
+the spring was on 3 directions. 
+
+## shouldn't use git if you cannot use it properly
+I had accidentally deleted the file *disturbTest.slx* through some git actions. 
+I should have make a copy before changing anything. 
+the file was lost forever but I guess *angledWall.slx* should be fine. 
+from now on, this *disturbTest.slx* was actually saved from *angledWall.slx*. 
+I made a zip copy of the current "model" folder which had all my slx files. 
+these were the files I never made copy of. 
+this in itself was a big mistake. 
+from now on, I should back them up every now and then. 
+and STOP using confusing git commands. PLEASE. 
+
+## misc
+- put in the missing flags in *runLargeScale.m* so that it's the same as *exeScript.m*
+- the flag `isWallSet` was now automatic with OL related set to 1 and others 0 (default) for both simulation scripts
+- trimmed down the unused code in *postProcFcnLargeScale3D.m* (based on *postProcFcnLargeScale.m*)
+
+# 20200415
+## started to fix the OL side of things
+I went back to [20191029 log](https://github.com/easyt0re/piecewiseLinearModel#20191029) and tried to remind myself of the choices I took when I built *disturbTestBaseOL.slx*
+
+the XY stage was of course for "fixing/compensating" the things happening perpendicular to the wall direction (surface normal). 
+however, why I used an active XY stage instead of static frame transformation block was still forgotten. 
+the only benefit I could think of was that it could monitor some force in order to keep the TCP there but these forces were not particularly interesting to me. 
+I changed it to static frame transform this time and it seemed working. 
+I saved this to a different file (*angledWallOL.slx*) just to preserve the previous file although it's already been changed a bit. 
+b/c there was no "version control" for the slx files, I needed to write them down myself I guess. 
+
+noted that these "save as" actions should have some kind of backwards compatibility. 
+the idea was to try my best to keep everything unchanged. 
+many visual helpers were added but they shouldn't matter. 
+no-angle wall should be treated as an angled wall with a 0 angle. 
+
+## difference between *disturbTestBaseOL.slx* and *angledWallOL.slx*
+- an "inital guess" (low priority position target) was added to passive joint in chain 3 (this was actually implemented in both b/c it's also a good thing for the old version and it should work)
+
+- a frame transformation block replaced the previous active XY stage block
+
+- the stiffness calculation in the model was cleaned b/c it's not useful anymore and it produced annoying warnings
+
+- the visual for start point was fixed with the rotation and it's with `start_pose(5)` instead of `wallAngleY`
+
+- an "OL3D" controller was added based on the old OL controller 
+
+# 20200414
+a happy day
+## tried to clean the code
+I would like to have everything "linked" and automated. 
+given the controller type and other things, the file for simulation should be decided. 
+this could also be helped with the flags. 
+I had too many flags now. 
+maybe it's a good time to put all of them together. 
+this could also help with specifying each "scenario". 
+
+# 20200408
+## added "initial" values for passive joint(s) to avoid singularity
+saved *disturbTest.slx* as *angledWall.slx* to further develop this case, leaving the previous model intact. 
+added a few visualization to help understanding and debugging. 
+
+long ago, I knew that there's something wrong with how our model initialized itself. 
+for the model, it's easy to initialize into a singularity pose when the calculations were correct and the pose was actually singularity-free. 
+I didn't find a solution back then. 
+we were thinking about adding constraints to passive joints. 
+but the "constraints" in joint definition was more like "constraint forces" instead of "feasible range". 
+this happened again with $(x,y) = (-20,20)$ and 10 degree angle in +Y. 
+I temporarily solved this by giving the passive joint in chain 3 a low priority position target. 
+this wasn't something the solver had to follow strictly but I guess it offered an "initial guess" for the solver, 
+giving it a higher chance to get the result we wanted. 
+the value was found by trying the range of this value. 
+the correct range was something from 1.0 to 1.3. 
+the singularity pose was with a value of 1.5.
+so I set it at 1.15 and it could correctly initialize itself now. 
+this **should** be moved to other main version of the simulation file as a patch. 
+actually, more passive joints should be modified in this way to better guide the solver to the correct solution. 
+
 
 # 20200404
 ## added *postProcFcnDeviation.m* for position error

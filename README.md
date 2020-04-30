@@ -32,9 +32,27 @@ This is a log for the development of the piece-wise linear model of our system
 - distinguish joint torque and motor torque (the modeling of gear ratio)
 - increase the dimension of the case (more complex wall)
 
+# 20200429
+I'm just tired of doing things manually. more automation with the code. 
+## added script to run 20 batches with different controllers
+added *runManySave.m* to run a number of batches with the selected list of controllers. 
+it's also added as a project shortcut. 
+the next step would be to also automate the choice of things like angled wall. 
+the key was this script and also the `clearvars` in *runLargeScale.m*. 
+
+## also added "plot and save" script for the results from the *sumScript3d.m*
+it seemed that I missed some logs. 
+*sumScript3d.m* could now save itself into a *.mat* file. 
+*these files* could be then handled by *plotStiffLoop.m* to plot a list of metrics and save with good file names. 
+
+# 20200424
+## implemented wall rotation along x axis as well
+it would be recommended that x and y rotations should be used separately. 
+z was not implemented b/c it's a z-wall to begin with and it should not be used on its own at least. 
+it would come out of the "workspace" and the part of SDMOP using interpolation would not work. 
+
 # 20200423
 current git commit corresponded to "v1" results.
-
 ## choice of metrics, again
 to reiterate, choosing one (basic) metric was possible 
 but the performance for all controllers would not be comparable. 

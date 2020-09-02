@@ -11,6 +11,19 @@ This is a log for the development of the piece-wise linear model of our system
 
 - [ ] write a new post-processing script
 
+
+- [x] reexamine the control requirement and find references for them
+
+- [ ] check how good is the linearized model
+
+- [ ] should we check some simulation with low refresh rate (run on real hardware and report the time)
+
+- [ ] comment list: 2.1, 2.5, 2.8, 3.1
+
+- [ ] figure position and figure caption
+
+- [ ] justify references
+
 ## things in the dump
 ### implementation
 -  modify *userHandInit.m* to isolate no hand situation
@@ -31,6 +44,469 @@ This is a log for the development of the piece-wise linear model of our system
 - have different constraints on different directions
 - distinguish joint torque and motor torque (the modeling of gear ratio)
 - increase the dimension of the case (more complex wall)
+
+# 20200826
+## studying gain scheduling
+I don't know what to say but Lei suggested to address the gain scheduling (GS) issue in my MOP controller. 
+
+so the motivation behind GS was that the control plant at different OP had different responses. 
+so different controller were needed to take care of that. 
+one way to check whether or not this is the case is by `bode()` plot the plant. 
+I didn't really do this so I actually cannot confirm my motivation to begin with. 
+
+# 20200818
+## SOP vs. MOP statistics
+I used `stiff_1stPeakVizSum` as metrics for comparison. 
+out of 121 (11x11) QPs, 62 showed significant difference. 
+59 didn't and 25 (5x5) out of these in the middle were supposed to do that. 
+they should have no difference b/c they were the same controller. 
+so out of the 96 that were supposed to have a difference, 62 did. 
+out of 62 significant results, 45 had a higher mean. 
+I made a Excel file to store all the numbers. 
+if the result was presented like this, it's not that interesting. 
+however, when only looking at the lower areas, almost all points were significantly higher. 
+and if this part and the center part were taken out, whether it's higher for significant points was actually 50/50. 
+of course, this kind of result was influenced by the resolution of the QPs. 
+but it seemed that with more OPs, lower area on the wall was improved a lot. 
+the area other than that was kinda pure luck. 
+was this still b/c of saturation? 
+maybe the current result is rather noisy. 
+I still need to think of a way to argue about this. 
+the lower area was clearly improved and that's good. 
+
+# 20200803
+I'm confused now. 
+I'm not sure if this "verification" idea is good. 
+## fake vs. exp
+I thought there might be something wrong with cosim or whatever. 
+so I would like to see if results from Simscape simulation would be "comparable". 
+however, fake against exp (cosim) didn't show a better similarity. 
+I really don't know what is wrong. 
+
+# 20200802
+not so good with the results
+## use cosim to verify sim
+I used `ttest2` to check whether the result from cosim was similar to that from sim.
+the results were not so optimistic. 
+only hand model with OL controller got a similar result with a 5 out of 9. 
+this was something I could argue at least. 
+other scenario/controller/metrics combinations were not as "good", 
+showing significant difference between sim/cosim. 
+
+I should say that maybe I shouldn't have perturb the mass distribution in ADAMS. 
+I did that as a gesture to "controller takes care of model difference". 
+we all agreed on this. 
+however, it seemed that this one perturbation was not enough. 
+to demonstrate our controller could handle modeling error, we need random perturbation maybe. 
+
+this was something we didn't really plan well. 
+now my new results were "significantly" different than my old results 
+but it could be b/c of the change in the model itself. 
+I should have kept everything the same when what I really wanted to do was verification. 
+
+apart from the mass distribution, specifically, some bars were carbon fiber instead of steel, 
+the hand model implementation in cosim was also different. 
+
+(awkward sigh) OK. so I checked the definition for the Simscape model. 
+it turned out: I didn't specify those carbon fiber bars are they are. 
+instead, I did it like ADAMS model, defining them as steel. 
+I wasn't sure if I should be happy or not when I found out about this. 
+I was about to run some simulations setting them to carbon fiber so that they were the same. 
+now, there's no need. 
+then, I truly don't know what's giving me this significantly different results from cosim. 
+
+## added `ttest2` scripts for statistical analysis
+the idea was to, for each QP, evaluate whether the metrics concerned were similar for sim and cosim. 
+*takeOutEdgePts.m* was developed to only take the 3-by-3 "edge points" in a "result dataset". 
+*allttest2.m* was for generating a bunch of things that could tell us whether things were similar. 
+correct files and namings were required in the folder for this script to work. 
+change `theThingIdx` to get results for different metrics. 
+*boxplot9.m* was developed to draw box plots given the saved results from *allttest2.m*. 
+more codes were needed if this would be a figure in the paper. 
+
+## there might be another bug
+I'm breaking apart. 
+the execution order of scripts was always a problem.
+as my scripts got more, it's harder to keep track of them. 
+*userHandInit.m* should be executed after `isWallKSet` and `isHand` were set. 
+currently, this wasn't the case for *runLargeScaleCoSim.m*. 
+however, if it's OL3D and pure force, *userHandInit.m* was only called once 
+before `isWallKSet` was set to the correct value of 1. 
+this could be the reason I wasn't satisfied with OL cosim on 20200728.
+
+additionally, now that I added both force and hand model into 1 slx file, 
+values needed to be initialized regardless of what model was active. 
+so the solution to this was currently *userHandInit.m* was executed 
+after controllers were loaded. 
+this was implemented in *runLargeScaleCoSim.m* and *runLargeScaleFake.m*.
+I checked the script. it's pretty stand-alone. 
+hopefully it wouldn't affect other parts of the script.
+
+# 20200730
+## mess with pp again
+the calculated metrics again had some negative values for stiffness. 
+this happened with `forMeanEval` for steady force DMIMO `stiff_mDNP_steady`. 
+previously, hand and force models had different ways to do this. 
+this was basically whether or not we have a negative penetration. 
+force model and OL were easier to have negative penetration than hand model and DMIMO, respectively. 
+so in hand model pp previously, I set positive values to zero. 
+I didn't do this for force model b/c it didn't need it. 
+this time, I only took the mean of negative values. 
+in this way, the zeros wouldn't affect the mean. 
+this would probably make the penetration larger. 
+see the code commit for today for details. 
+
+this was a bit like data manipulation 
+but I could also "justify" that a little. 
+we would like to know the penetration when the spring was active. 
+this was exactly what the current implementation was doing. 
+we didn't really care about the positive values as they were in free space. 
+
+however, this pp script would not be the same as what we used for the previous simulation results. 
+this could be problematic. 
+
+# 20200728
+## problems with OL cosim
+this is quite unfortunate. 
+after I saw the results generated by pp scripts, there was a tendency in OL simulations 
+that they tended to do better at the bottom of the workspace/wall, 
+which contradicted a little with our previous findings and reasoning. 
+
+I don't think this should happen. 
+after a closer look, I think this might related to the initialization mechanism. 
+for OL simulations, they were initialized by a "motion" of the TCP. 
+the 6 DOFs of the TCP were all set to 0 except z direction was set to "free" 
+b/c it shouldn't be constrained and would be pushed later. 
+this might have a problem: when initialized the device in the lower half of the workspace/wall, 
+it tended to start a few mm inside the wall. 
+0.1 mm was probably fine. a few mm was quite a lot. 
+b/c this was OL, there's nothing there to correct this initialization. 
+force rendering was turned on only after this initialization time period passed. 
+
+I think this might affect the performance evaluation. 
+for a case like this, initialized inside the wall, there's no "free-space to constrained-space" transition. 
+this transition was usually giving the max penetration. 
+in other words, before the first collision happened, there's no time period that only disturbance force was active. 
+this might somehow make the "first dip" smaller. 
+apart from that, in the old pp scripts, I also had the concept of "steady wall". 
+due to the quantization, the wall might not be 0 b/c it's simply unreachable due to the smallest step. 
+this concept would be taken advantages of by the in-wall initialization, making the penetration so small. 
+so currently, the metrics w/o steady seemed more favorable.
+
+this in-wall initialization could probably be solved by using initial conditions (ICs) in ADAMS. 
+I used this for DMIMO but it used to be that it would raise an error when I did it with OL. 
+I thought this might be over-constraining the system so I gave up and got rid of the ICs. 
+now that I saw this result and I went back to Xinhai's desktop to see if the ICs and the TCP motions were conflicting. 
+it seemed working. for the time I was there. 
+maybe it would still break like before as a random thing to me. 
+b/c of this, I might have to rerun some (half) of the simulations. 
+that's why it's quite "unfortunate".
+
+## found a "bug" in pp scripts
+I used to have 2 scripts for hand and force models separately. 
+later with MOP and angled wall, I wasn't really using the hand model or the concept of steady wall, 
+so this bug didn't show, probably. 
+even if it did, I probably didn't notice it b/c it's quite hard to spot. 
+I seldom took a look at "steady" vs. "non-steady" metrics. 
+
+the bug was, when I calculated `stiff_mDNP_steady`, one of the metrics, 
+I didn't really used the trajectory (`trajDeviatSteadyZ_mea`) after taking into account the "steady wall" effect, 
+making `stiff_mDNP_steady` the same as `stiff_mDNP`, hence the figure. 
+this was fixed ONLY in *ppOldCoSim.m*. 
+this bug was NOT in the hand model scripts. 
+I might need to process the data again to see if it's "better". 
+
+# 20200727
+"all" cosims were done, thanks to Xinhai's desktop. 
+## post-processing (pp) for the major revision
+it's actually been quite a while since I generated the figures for this paper. 
+after MOP and angled wall, the post-processing actually changed quite a lot. 
+currently, I'm looking at the results generated with the "new" pp script. 
+the numbers are higher than what I reported in the paper with the Simscape simulation, 
+which doesn't really make sense in my opinion. 
+it could be that the "metrics" had changed quite a bit. 
+so maybe I should try to analyze the data with the "old" pp script. 
+
+I should note here that pp script for cosim should be different from that for Simscape simulation. 
+the measurement from ADAMS model, especially TCP position, was in a different coordinate and unit system. 
+
+a set of pp scripts were created b/c of this. 
+they were based on "old" pp scripts, when I first processed the data for this paper. 
+at least the metrics and the way to compute them was the same. 
+they took the names *ppOldCoSim.m*, *ppOldHandCoSim.m*, and *sumOldCoSim.m* 
+to note that they were post-processing scripts for cosim and they were based on the "old" method. 
+it should be noted that I used to change "sumScript" manually to deal with hand/force situation. 
+in *sumOldCoSim.m*, I made some new codes and used `isHand` as a flag to automatically switch that. 
+
+# 20200726
+## about checking the accuracy for the linearized model
+I didn't say much about this. 
+guess I forgot to write a log for it. 
+*checkLinAccu.m* and *checkLinModAccu.slx* were used to do the checking. 
+it's good that I left some comments in the code. 
+
+# 20200725
+I'm reluctant to change things these days b/c the old stuff is there and it works. 
+changing means bad "compatibility". 
+it's nice that the old things still work. 
+
+## merging of force and hand model
+I did the hand model w/o the Simscape spring-damper block for the co-sim. 
+this opened up opportunity for having one slx file to switch between force and hand model. 
+
+I had a bunch of flags for turning signals on and off. 
+the noise could be turned off. 
+the noise was also delayed for initial stabilization. 
+for the hand, it's delayed longer until the hand force is not changing. 
+the force feedback could also be turned off I think. 
+it also had a delay in the beginning for the same reason. 
+I think we could have a bunch of things renamed 
+but currently, I added a new variable, `disable_FB_time`. 
+this is currently only for "OL" I think. 
+`coSimADAMSOL.slx` was changed accordingly 
+and hopefully it's compatible with the previous things. 
+
+## naming problem with OL/Hand
+I think I had problems with naming for OL and hand model. 
+they are actually orthogonal but I tend to mix them. 
+for example, some of the specification for OL controller is actually in *userHandInit.m*, 
+which is still needed when doing  force model OL controller for obvious reasons. 
+these are things to look out for and I hope my naming of things make sense. 
+
+# 20200722
+## redo hand model as a pure force signal
+previously, the hand model was done with a spring-damper block from Simscape. 
+the desired disturbance force was achieved by specifying hand motion. 
+then, by giving this and the TCP motion to the spring damper block, the (hand) force was generated, w/o me writing anything about the math formulation. 
+
+now that we are running co-sim, this has to change b/c the "robot" is not in Simscape anymore. 
+the hand motion was still available as it was designed by me with a "trajectory planner". 
+what we needed was TCP motion we got from somewhere and the speed by differentiation. 
+this was done in *redoHandModel.slx*. 
+to initialize the model, I used *initCoSim.m* with the `isPureForce = 0`. 
+the idea was that the force generated from my "manual" calculation should be the same as the force we got from the spring-damper block. 
+the result was close, with my calculation "rising" a bit faster and earlier than the old one. 
+it's also not that smooth. 
+I actually like the new implementation b/c I cannot explain why there's a kind of a delay in the old one from 1 s to about 1.2 s. 
+
+another thing I found when I took a look back at my old implementation on hand model was that I couldn't understand how random noise worked in that system. 
+to the current me, the added noise never reached TCP. 
+it only happened when I "collect/measure" the force. 
+so was this modeling the measurement noise instead of adding a real noisy signal into the force acting upon the TCP? 
+if this was the case, it made more sense. 
+I had a vague memory about this discussion with Lei. 
+it's probably that I had a had time trying to implement that noise and later ended up with that with that reasoning. 
+however, I still don't get it why I didn't do this in the first place. 
+why was I so obsessed that it should be an implicit force instead of an explicit one? 
+
+# 20200720
+when I'm knee's deep into details, I tend to forget things. 
+## current status of cosim
+### the story
+cosim for DMIMO force model had been running for a while now and 10 batches were collected. 
+I've been working on OL controller for some time now and until very recently it was still a mess. 
+I tried a bunch of things to recreate the Simscape simulation. 
+I did a lot of tricks in there for OL to work. 
+so in ADAMS this time, I fixed all other DOFs instead of z, turned off gravity, and added more damping (a bushing) for it to have a stabler result. 
+unfortunately, none of these worked. 
+
+I then turned to the "algebraic loop" warnings b/c these warnings sometimes turned into errors for some reason. 
+Lei suggested again to add a delay to break that. 
+after adding that, I got a feeling that the system was "one step behind" and it's affecting the results. 
+
+so what I got was TCP gradually moving from the wall, even from the very beginning, w/o even triggering the collision/force feedback. 
+of course, these things happened quite "in parallel", not in the order I wrote them. 
+b/c it's never triggering and the disturbance force didn't slow that motion from happening, I didn't know what to do. 
+I thought the system might be "missing one step". 
+maybe it triggered one step and it's quite large so the disturbance force couldn't counter it in a short time. 
+I was really a bit destroyed by the fact that it's not working.
+
+### the awakening
+however, it turned out that I got the disturbance force in the WRONG DIRECTION! 
+instead of pushing the TCP against the wall, it's pulling it away. 
+no wonder there was the motion and there was nothing counteracting it. 
+this was the second time I had a different direction from YZ's work and every time it's wasting quite some time. 
+I didn't realize this from the DMIMO case b/c even if it's pulling, the controller still worked. 
+that's probably why I needed that "fakewall" I was mentioning before. 
+I didn't realize "no real penetration" was b/c I was pulling away from the wall instead of pushing. 
+
+### the shadow
+after fixing this, everything worked, kind of. 
+I kept the delay to break the algebraic loop and it seemed ok. 
+the "kind of" was referring to this "ADAMS initialization error" I was still getting from time to time. 
+currently, to me, it seemed like an error that's randomly appearing. 
+I could get it at any QP and any batch. 
+this currently would just break everything and stop. 
+this would be the next thing to fixed before running it large scale. 
+
+## about hand model as disturbance
+last section was getting to long, so I'd like to break it into 2 and talk about my doubts for the "future". 
+b/c I thought I hit a dead-end with OL, I tried to do hand model. 
+that's when I realized I did the hand model in Simscape and the way I did it could be hard to move to this cosim setup. 
+for some reason, I didn't do it like the force model, having an explicit force signal disturbing the TCP's motion. 
+instead, I coupled TCP's motion with another motion (hand motion) and the spring-damper in between generated the force based on these 2 motions. 
+I don't remember why I chose to do it this way. 
+I think there should be an important reason other than "so that I don't need to calculate the math or do differentiation to get the speed". 
+I don't think I can do this in ADAMS b/c I'm not that good at it. 
+I think I will return to the explicit force signal idea if I still cannot find any reason in this log that suggests not to. 
+
+# 20200716
+I didn't really write the log anymore, which was not so good. 
+more logs were needed to document everything I did. 
+
+## misc
+- the hold before the disturbance was shrunk to 0.1 s to do testing. maybe it's also good to keep this to shorten the simulation time.
+- post-processing was redone b/c the measurements from ADAMS model were a bit different. still ran into problems like no real penetration. made a "fakewall" to pass that. see code. *postProcFcnLS3dCoSim.m* was renamed after *postProcFcnLargeScale.m*.
+- finished the whole thing with force model DMIMO all the way to post-processing.
+
+# 20200703
+had hiccups here and there and the things were finally working now.
+however, with GUI co-sim ran 41.5 mins for a 3 s simulation. 
+w/o GUI it still took 40 mins. 
+this time could be a problem but it also made some sense. 
+3 s simulation with 1 ms time step gives 3000 steps. 
+if each step was completed with around 1 s, that's 3000 s, 50 min. 
+if this was really what happened, there might be not so much room for shortening the time. 
+on the other hand, what magic had  MATLAB done to make their simulation so fast? 
+in this sense, maybe I did something terribly wrong. 
+
+# 20200630
+I was confused about moving forward as many things are happening these days.
+I think I could start with Lei's new comments on things and gradually move forward. 
+
+# 20200629
+I was still busy writing the notes trying to summarize what had happened and what didn't work 
+when I received a msg from YZ that he finally found the "bug" I suspected. 
+when I saw the way the ADAMS model under my controller collapsed, I felt like there must be a mistake instead of 
+a modeling error so huge my controller couldn't handle. 
+YZ was quite confident with his modeling and I agreed. 
+but now, with this "bug" fixed, my controller could control ADAMS model although the performance was not as good. 
+this was normal and as expected, given that the difference between model should be quite a lot. 
+however, given all the other tests, maybe the "root" part was not a problem (b/c they were close to base) and so was the steel bars that were suppose to be carbon fiber (b/c they were light even as steel). 
+
+# 20200627
+I forgot to write this log. many things had happened.
+currently, we are doing co-sim again with ADAMS model. 
+my memory is not so good. so I would like to note everything down. 
+
+the master student Yang Zhang (YZ) was helpig me with all of this. 
+he redefined all active joints and the torques on them. 
+he felt like this was the right way to go. 
+he was using 2020 version so there might be a chance that something didn't come through when I used it in 2017 version. 
+
+## ADAMS related stuff
+the motor in the ADAMS model (mass-inertia property) was "defined by the user" and it was 0.15 kg per motor. 
+let's call the clutter of the transmission and motor mount "the root", as it is the starting point of each branch/chain. 
+the root itself is low in mass, around 0.05 kg. 
+for the Simscape model, I imported the motor and the root as a whole assembly and defined the density to be close to steel. 
+this gives the thing around 0.6 kg, which is quite heavy. 
+because: 1) these things are quite close to the rotation axis; 
+2) these things are not so "heavy"; 
+3) when these things are added in the Simscape model, the torque to compensate at the OP is not changing much; 
+we could probably conclude that the "difference" in the modeling was not caused by these things. 
+
+the other mass-related problem in the old ADAMS model I found a long time ago was the carbon fiber links were defined closed to steel, with only one as carbon fiber. 
+as they are the moving parts and quite far away from rotation axes or the base, maybe they pose a larger burden to compensation torques in the joints.
+
+## a few points Lei pointed out
+during the last meeting before summer, Lei pointed out a few things in my implementation and writing. 
+
+"gain before integration" seemed not conventional. 
+at first, I thought this was a major mistake. 
+later, I realized it's not a problem as long as the gain is constant, which was true for our case. 
+so this was more of a formalization thing instead of a major difference thing. 
+I was trashed when Lei found out about this and was not so happy about it. 
+I thought all of my work was a joke. 
+but OK, maybe it's not that serious. 
+
+my controller structure was based on some good webpage. 
+but apparently I didn't quite get the math behind it. 
+for that I had to check the math again to make sure the formulation of the problem was correct. 
+I particularly didn't get the part where reference signal was introduced. 
+I had to watch out for that part.  
+
+# 20200520
+## looked into the math behind LAT
+I didn't find explicit low-level math for LAT. 
+only the "default option" for linearization is "block by block" according to the [`linearizeOptions`](https://se.mathworks.com/help/slcontrol/ug/linearizeoptions.html). 
+the other method seemed to be "numerical perturbation". 
+apparently, we didn't use that one. 
+
+a side note was that, this step could take a option for discrete time sampling frequency. 
+I didn't use this directly. 
+maybe I should check the result with this directly against my result. 
+they should be the same I guess. 
+
+## found another command related to Riccati equation
+one reviewer mentioned algebraic Riccati equation. 
+I had no idea what it is. 
+basically, it's a mid-thingy to compute the gain for the controller. 
+this was taken care of by MATLAB so I didn't know. 
+after looking into it, there's a command called `idare()`.
+it would be interesting to see if this command gives the same result. 
+
+# 20200430
+through writing my first journal paper, I had (and I have always had) doubts about what I actually did with this method 
+and how to categorize it according to the classic literatures in the field. 
+so I started to read a book on haptic rendering, a topic I intentionally didn't go into b/c I thought I was doing haptic control more and I thought haptic rendering was purely rendering algorithms, something I wouldn't touch. 
+so this was my reading notes as I went through the pages. 
+
+at least for me, the study of "haptic" was always divided into 2 with one studied and the other ignored. 
+general haptics was divided into force and other things. 
+of course, there's probably one level above this but let's just start from here. 
+I always cared about the force part, not the other. 
+the practical reason was that the implementation was much easier. 
+and by the end of this paragraph, it would be clear that I wasn't even caring about force.
+after this division, it's either the force was perceived through a (hard/rigid) tool. 
+perceived directly through skins and things was probably too hard to do so I cared about the tool part. 
+then we reached the part where it's either impedance or admittance. 
+we chose impedance. 
+this was not only our choices but also our perception, meaning in the literatures, 
+it also seemed that there's more on this very specific branch of haptics than others. 
+
+this book also had a definition given the assumption of impedance control. 
+they said that the haptic rendering problem cared about 2 tasks, 
+the force between the virtual tool and the virtual environment 
+and the configuration of the virtual tool. 
+normally, I only cared about the interaction force 
+but apparently the configuration of the tool was also important. 
+in my research, I always considered collision detection done and perfect. 
+however, this was not really the "definition" of haptic rendering. 
+the book said, one possible definition could be 
+
+> Given a configuration of the haptic device $H$, 
+> find a configuration of the tool $T$ that minimizes an objective function $f(H−T)$, 
+> subject to environment constraints. 
+> Display to the user a force $F(H,T)$ dependent on the configurations of the device and the tool.
+
+this was what we were familiar with right now. 
+basically, it's the abstract version of saying 
+compute the penetration or the difference between where the virtual tool was and where it should be 
+and use that to compute a force. 
+
+and then the book said 
+
+> In impedance rendering, the device control system should provide position information 
+> and implement a force control loop.
+
+thankfully, it also said something about the counterpart
+
+> In that case (admittance rendering), the device control should provide device forces
+> and implement a position control loop.
+
+so, with these 2 in mind, I (still) had a hard time trying to place my work among the others. 
+I was definitely measuring joint angles with encoders 
+but I also seemed to have a position control as a second step. 
+of course, the position control was achieved with a force control. 
+personally I didn't think that my control had anything to do with admittance control. 
+I thought my controller might be related to constraint-based (vs. penalty-based) rendering, 
+which was probably going to appear in the later sections of the book. 
+
+## misc points from the reading
+- the concept of transparency was probably borrowed from teleoperation
+- [this paper](https://doi.org/10.1109/IROS.1995.525876) could be a reference to the level of human user force in haptic interactions
+- this paper also said human wouldn't notice a penetration for half an inch (almost 13 mm, very hard to believe)
+- god object was a compact representation of history
 
 # 20200429
 I'm just tired of doing things manually. more automation with the code. 

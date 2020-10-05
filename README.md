@@ -45,6 +45,277 @@ This is a log for the development of the piece-wise linear model of our system
 - distinguish joint torque and motor torque (the modeling of gear ratio)
 - increase the dimension of the case (more complex wall)
 
+# 20201005
+## bugs again with co-sim post-processing
+as I mentioned before, the measurements for TCP pose in Simscape and ADAMS are different. 
+however, the pp scripts for co-sim were copied from those for Simscape w/o a proper checking maybe. 
+on a second thought, maybe my data is fine. 
+this can be a "compatibility" issue. 
+on 0731, my pp scripts were right about the alignment and units. 
+I probably generated the "fake" data on 0803, which is a Simscape simulation. 
+so maybe that's why pp script is now last modified on 0803 and the bug is present. 
+
+## delay against co-sim
+either force or hand disturbance, the results looked similar: 
+the penetration was larger, especially on the top part of the wall. 
+this was something I didn't really pay attention and I couldn't make sense of it. 
+I always thought that TAU did better with the upper part, making higher stiffness, 
+but the penetration was actually larger? 
+that didn't make sense. 
+
+apart from that, the penetration was just large, a bit unacceptable. 
+the results were for 0 to 3 steps of delay. 
+I would change it to 0 to 2 steps to see if it's better. 
+but this was like barely a delay. 
+maybe if I count the one for breaking the algebraic loop, I could report a 1 to 3 steps of delay. 
+
+# 20201002
+## rethinking of disturbance model and potential bug
+"rethinking" is probably a bit much but, 
+as stated in the yesterday's log, 
+disturbance model is now also a variant subsystem block, 
+instead of using a switch block to switch between the 2 signals. 
+this should help with the backward-compatibility. 
+sometimes, I implemented something, I ran tests for it, 
+then I implemented something new, I ran tests for the new thing. 
+I didn't go back and check if the old thing was still working with the new thing in place. 
+
+the potential bug, or the actual thing to remember, is that 
+when I "cheat" track the position of TCP
+- with Simscape, it's w.r.t the world frame, so ref point needs to be deducted before sending the TCP z back to the disturbance block
+- with co-sim or ADAMS, the origin **IS** the all-zero point, so it can be fed directly to the disturbance block
+it seemed that my implementations on Xinhai's PC were alright. 
+so the version problem does exist. 
+I think some of the codes or models on Xinhai's PC are superior. 
+this is something I should solve. 
+when I saw this bug on my laptop, I was shocked. 
+I thought all I did in co-sim or fake must have been wrong. 
+but, yeah, luckily the version on Xinhai's PC seemed right. 
+
+## changes in files on Xinhai's PC
+- *coSimADAMS.slx*: the only change seems to be the discrete time random delay, with possible steps of 0 to 3. 
+- *runLargeScaleCoSim.m*: this is only changing the flag, whether it's hand or not. 
+- *runManySaveCoSim.m*: this is only changing the controller type. 
+- *TAU_Lib.slx*: it's updated to with the delay blocks, not the new disturbance model block.
+
+that's mostly it. I think it's still manageable. 
+I didn't make a copy of the old files before I started again a few days ago, 
+which was a bit unfortunate. 
+I made a backup today, which could still represent the end of ToH major revision, 
+before this new minor revision. 
+
+## missing info for doing stats after co-sim
+I actually did a bunch of things after 0818 but there's no log. 
+I would like to use this opportunity to document a few functions for stats. 
+
+the script to run the simulations will probably be called something like "runLargeScale" or something. 
+after this, in the result folder, there will be a number of files. 
+the number should be number of batches. 
+I normally run 20 batches for Simscape and 10 for co-sim.
+then, "post-processing" script are used and actually "summary" scripts are used on all batches of results. 
+this generates one *.mat* file that can be loaded and run *plotStiffLoop.m* to generate stiffness distribution plots. 
+these are mostly what we did "before". 
+no "stats" is included up until this point. 
+
+then it should be *allttest2.m* to compare if two of those summarized results are different or not. 
+this is mostly for different simulating method, for example, Simscape, co-sim, fake co-sim, and now, with delay. 
+this only compares one selected metrics at a time. 
+the choice can be modified in the script. 
+it also saves the results of the comparison. 
+as stated, this can be used on 2 summarized results for different simulating methods. 
+Or it could actually take multiple pairs of 2, though you have to check if they are paired correctly. 
+now it uses the suffix of the file name to separate the 2 groups. 
+then the pairing within the group is done by order by names. 
+
+the *allttest2.m* script is still a script to change. 
+I probably need to tweak a few things before it could run well with the data at hands. 
+as the new commit might suggest, almost everything before the for-loop is to change. 
+with the results from the script, *plot9Box.m* can be used to do 9 box plot to visualize more. 
+currently, it is exactly 9 box plots and they are for penetrations. 
+
+in between, I also worked on the SOP vs. MOP paper. 
+so *allttest2.m* was also used on that data with 11x11 instead of 3x3. 
+
+# 20201001
+## first attempt at sliding
+currently, *fakeDIP.m* was implemented and working at a quick glance. 
+I could generate a trajectory with a start and a stop pose. 
+only tested with DMIMO for the moment. 
+the only thing to change for other controllers should be only the ref signal. 
+the ref signal was done by a "from workspace" block and the data was a matrix. 
+the first column of the matrix is time and each row is a set of joint angles. 
+
+if this is the sliding, I think the disturbance signal should change accordingly 
+and maybe I should use at least a separate script for initialization of the disturbance signal. 
+
+the current way of doing *fakeDIP.m* might be quite slow 
+so it should be computed offline. 
+it should be a "save and load" process in large scale simulations. 
+
+current implementation could do both sliding (new) and point pressing (old). 
+it treats point pressing as a trajectory with only one point. 
+maybe b/c there is time in the trajectory, the simulation seems slower, only a little. 
+
+## misc
+- I shouldn't use switch block on an "either/or" existing part. I should use what I chose for the controller instead. in that way, the part that's not active doesn't need to have all its params. 
+
+# 20200930
+## the idea of using this controller concept
+no matter what, I consider my work a different way to do force computation. 
+the idea originates from the fact that
+since the behavior of a position controller resembles the behavior interacting with a wall, 
+a position controller can be used to do force computation in such "case" or "scenario". 
+if we think along this line, we can find the next behavior to tackle, say the spring, 
+and think about what controller behaves like a spring. 
+currently, nothing really comes to my mind. 
+(what about a position controller with a steady-state error?) 
+I think I'll end up doing just a spring model. 
+
+another thing is that I want to make an argument about stiff object interaction. 
+I think it's the major interaction in (matured) haptic rendering. 
+nonlinear soft object is still frontier of rendering 
+and it's quite rear that you are really interacting with a linear spring. 
+the graphics for deformable objects is also under development in my opinion. 
+so if our approach takes care of stiff interaction, can we argue that it covers quite some ground? 
+
+Let's draw an overall picture. 
+our approach works definitely within the existing framework of haptic rendering, the rendering loop. 
+it's an alternative force computation module. 
+the rest, collision detection and determining of interaction point (DIP), can be left unchanged. 
+either free-space or constrained, collision detection should be always working. 
+when it's collision-free, DIP simply follows the trajectory of the TCP. 
+(of course, here are a few problems. 
+this means the result of DIP, which is a trajectory, will always be at least one step slower than the TCP. 
+will this make a noticeable difference? 
+this opens the opportunity to predict the next step or some other predictive things. 
+if the 2 trajectory are identical, then the "error" is 0, then the controller is essentially not active. 
+no, it's active. it's compensating exactly the gravity force but that creates problems as well. 
+this gravity compensation part comes from the model of the device, which is a linearized model, 
+meaning it's probably not accurate. 
+even if it's accurate, from simulation, we know that it's "a ball sits on a pointy point". 
+it's very fragile to even a small disturbance.) 
+with DIP and TCP trajectory as input, the effect of the controller in free-space should be gravity compensation. 
+the controller can also take care of the friction in the system as long as it's modeled properly. 
+these would help with the transparency. 
+when there is a collision, DIP will work based on constraints or whatever. 
+here and now, we claim that we can do stiff interaction with no deformation/penetration. 
+
+## a recap of model files
+from simulation to co-sim, I redid the hand force model. 
+the hand force used to be inplicit, a force computed by a block. 
+the computation is based on the relative motion of the hand and the TCP and spring-damper parameters. 
+these are the *disturbTest.slx* related files. 
+
+*angledWall.slx* related files were based on these, 
+with the capabilities of an angled wall as well as some other visualization assistance. 
+
+after co-sim, hand force has to be an explicit force signal design directly by me. 
+I designed the force trajectory of the hand force. 
+this unifies the system in a way as now the pure force and hand force are all force signals applied to the TCP directly. 
+these files are named *angledWallwHand.slx* or something similar. 
+of course, co-sim files are different from these b/c the plant is from ADAMS. 
+those are the *coSimADAMS.slx* related files. 
+at one point during this process, I also added some more complex geometry to be in models. 
+that's not really important but worth noting. 
+
+then, there are variations in the model. 
+some discrete-time delay was added to DMIMO controller. 
+this is currently not our focus and should be kept comment through when running normal simulations. 
+angled wall can be also considered as a variation. 
+this can be achieved by changing the script. 
+
+currently, *angledWallwHand.slx* and *coSimADAMS.slx* are under active development. 
+the backward compatibility is not guaranteed but I try my best. 
+I'm writing this b/c I'll change the input to the controller, the reference signal, in a big way. 
+I hope everything works. 
+
+## trajectory planner as the result of DIP
+currently, my understanding is that, 
+our approach cannot do sliding not b/c the approach is limited, 
+but b/c we are missing DIP. 
+to go around that, we assume we get perfect results from a working DIP. 
+that's like a trajectory planner. 
+maybe I should call this fake DIP. 
+note that last time I used "fake", 
+it's to see if simulation results can be treated like fake co-sim results. 
+that's b/c co-sim took too long and I think the results should be more or less the same. 
+
+# 20200927
+my code is always changing. 
+as it's getting bigger and bigger, it's harder to track. 
+I used to track all the "configs" for different simulations 
+but I guess I didn't follow through 
+or that's already outdated. 
+## time points in simulation
+currently, I have problems with the total simulation time, 
+the delay in the beginning to stable the system,
+and the delay in the noise signal. 
+
+in simulation, I used to have a 3-second simulation, 
+with 1 s delay in the beginning and 2 s for the disturbance. 
+moving to co-sim, I realized 1 s delay was not necessary. 
+b/c the co-sim was quite slow, I shrank it down to 0.1 s. 
+and, I think this would only work with pure force, 
+that I also shrank the time to hold the force from 2 s to 1 s.
+this was done in a commit on 20200716. 
+there is also a log for that, thankfully. 
+this shrinking of holding time probably wouldn't work for hand force 
+b/c it takes 1 s to gradually change from 0 to the disturbance level. 
+I don't think this "rising" time can be changed.
+
+## the delay in the system
+one reviewer was still quite "obsessed" with us showing some performance with delay in communication/computation. 
+
+I started with discrete time variable time delay. 
+the limitation is that the delay has to be integer times of sampling time/smallest step. 
+I had a short write-up in the emails with my supervisors and I'll show it here.
+
+### my delay write-up
+**Universal Setup:** 
+I directly added a delay block between the controller and the motors. QP is at the center of the workspace, origin. Single OP.
+
+**Variant Setup:** 
+the delay can be of either constant or random length. The maximal length can also be defined.
+
+**Results:**
+
+- Constant delay
+	- With a constant delay of 1 step, the system is as before.
+	- With a constant delay of 2 steps, the system is unstable, oscillating. TCP cannot hold it pose. The motors are bouncing between upper and lower saturation limits. 
+	- I tried with longer constant delay. The result is similar to that of a 2-step delay.
+- Random delay
+	- With random delay ranging from 0 to up to 3 steps, the change in performance is unnoticeable. The errors in position in 3 axes are well within 1 mm. 
+	- With random delay ranging from 0 to 4 steps, the TCP will shake from time to time. The largest error in position will exceed 1 mm. Whether the performance after this point is acceptable is subject to our “requirement”.
+	- With random delay ranging from 0 to 9 steps, the TCP will still try to keep its pose and succeed from time to time, unlike the performance for a constant 2-step delay.
+
+**Comments:**
+- This is just an overall prediction. I expect the performance in co-simulation to be worse but similar. 
+- This is all done by judging with my own eyes. If we really finish everything and compute the metrics, the stiffness could decrease.
+- I’m not sure if the results are “significant”. The delay is dealt with in a “passive” way as we didn’t actively design something to deal with it.
+- With that in mind, I still don’t know if this result is good or bad. 
+
+### on the other hand with Lei
+Lei suggested to go with a continuous time delay with length up to 1 sampling time 
+and the delay should be random. 
+I personally don't get why the delay should be less than the sampling time. 
+
+### a few questions about this
+when I looked at the co-sim file today, I realized I added 1-step delay to break the algebraic loop before. 
+what does this mean to the whole thing?
+
+I also don't know how to call my system. 
+with delay, does that mean my system has a lower update rate? 
+maybe not. b/c it's still updated at 1 kHz. 
+it's just that it's always 1 step behind. 
+I also did some "down-sample" tests a while back. 
+how do I call that?
+
+what's the point of testing with delay? 
+if the system can handle longer delay, does that mean it's better?
+
+## misc
+- in general, I think my code is currently poorly managed. there is probably no "main version" and some of the "new features" are not updated to the previous code.
+
 # 20200826
 ## studying gain scheduling
 I don't know what to say but Lei suggested to address the gain scheduling (GS) issue in my MOP controller. 

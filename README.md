@@ -45,6 +45,96 @@ This is a log for the development of the piece-wise linear model of our system
 - distinguish joint torque and motor torque (the modeling of gear ratio)
 - increase the dimension of the case (more complex wall)
 
+# 20201018
+## implemented MOP controller again with real and smooth switching
+previously, I did **DMOPMIMO** with "nearest" for lookup table and switching. 
+of course, at the boundary, there would be discontinuity. 
+this switching back and forth was so bad that I didn’t continue. 
+I didn’t know how to and Lei asked me to settle with "just stick to one controller and don’t switch" for the fixed QP scenario. 
+but later, they were not happy with me doing MOP but not doing a working (smooth) switching, 
+so I started again. 
+
+linear interpolation was always an option 
+but I felt like it didn’t really make sense. 
+I thought it would make some of the other QPs less accurate. 
+another thing was that I probably didn’t find a good way to implement this. 
+this was also what happened this time. 
+there are a few things in simulink to do related things. 
+the output of `n-D lookup table` seems to be only scalar. 
+this wouldn't work for me b/c I need vector or matrix. 
+this was the solution I used in **DMOPMIMO** but apparently it's not enough this time. 
+there's also `direct lookup table` which can output matrix. 
+however, maybe as the name "direct" implies, it didn’t seem to interpolate 
+so there's no interpolated gains in between. 
+it's also no good. 
+I finally found a block that's just called `matrix interpolation` 
+but it needed index (integer) and fraction as input. 
+I didn’t like this solution as it's not clean 
+but I ended up using a `1-D lookup table` to map $[-25, 25]$ to $[0,2]$. 
+I used a `floor` block to separate the integer and the fraction 
+and fed that to the `MI` block. 
+the block works, so is the controller. 
+I compared the performance moving from top right to bottom left and keeping at `(x,y) = (12.5, 12.5)`, 
+which used to be a horrible QP for **DMOPMIMO**. 
+and the result was in general smooth. 
+
+the current implementation could only work for this 9-OP or actually 27-OP division of the workspace. 
+breakpoints are hard coded at this time. 
+the new controller is named **LIMOP** for linear interpolation. 
+
+now that the switching is work, I need to flash out the sliding thing and maybe compare **LIMOP** against **DMIMO**. 
+
+if this works well, I don’t really need to try the idea from yesterday. 
+I think it's more or less the same. 
+weighted sum is what happens in interpolation. 
+I think interpolation between two points is probably enough 
+and interpolation among neighbors won't change things significantly. 
+
+## extra things about `fakeDIP`
+the function is still quite simple and there are things to improve. 
+I didn’t try to go for a circle or other complex path. 
+this should be doable by carefully adding way points.
+
+another thing is what Lei mentioned when the tool come at the wall with an angle. 
+though I'm probably not thinking the same thing, currently the disturbance force doesn't affect the trajectory. 
+this could be something to do but since it's a fake "DIP", it doesn't really matter that much. 
+
+again, when I think about these thing, I also need to come up with research questions (RQs). 
+otherwise, it's just a patch and a waste of time. 
+
+## misc
+- added **LIMOP** controller and updated reference signals in both **DMOPMIMO** and **LIMOP** to work with a trajectory instead of a fixed point
+
+# 20201017
+## new ideas on switching
+the idea is basically not do switching. 
+instead, do a weighted sum of things. 
+it's probably like linear interpolation, which is the implementation I will go for next. 
+
+the idea here is not "switching". 
+for each computation step, compute the 9 results that are from the nearest neighbors. 
+then, sum them up using a weighted sum. 
+the further away, the less weight. 
+in my head, it worked a lot better. 
+now that I write it down, I feel like it's still switching, 
+meaning there are still discontinuity moving across some boundaries. 
+but it will probably be softer. 
+since the weight is "continuous", maybe it's better. 
+
+## a little problem with the delay co-sim
+other things are according to plans and expectations 
+but for both scenarios, the "steady-state" stiffness is higher in w/ delay than w/o. 
+this I didn’t expect and I explained this to myself as a "noise" thing. 
+the calculation of the stiffness is actually very unreliable. 
+the numbers are quite high and it can be largely influenced by the change in small penetrations. 
+this is something I should look into but currently I don’t have the time and a good solution in my head. 
+
+## misc
+- *allttest2.m* is a script that will be changed probably constantly. it's just option changes so it should be OK. so is *plotStiffLoop.m*.
+- I usually make separate scripts for the plots I have in the paper so that they are fixed and the figure can be generated later with less fuss. so *plot9Box3.m* is made from *plot9Box.m* to draw the plots with delay. 
+- for the delay co-sim, I only touched files related to **DMIMO** and the **OL** files were left unchanged. I didn’t run delay co-sim for OL b/c I think it's not needed. 
+- the delay in DMIMO controller in *angledWallwHand.slx* is commented through at the moment. this is the only delay actually. 
+
 # 20201005
 ## bugs again with co-sim post-processing
 as I mentioned before, the measurements for TCP pose in Simscape and ADAMS are different. 

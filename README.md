@@ -45,6 +45,248 @@ This is a log for the development of the piece-wise linear model of our system
 - distinguish joint torque and motor torque (the modeling of gear ratio)
 - increase the dimension of the case (more complex wall)
 
+# 20201110
+## pp scripts for sliding
+I should have committed this code in the beginning. 
+now the development steps are lost. 
+I'm not saying it's important but it might show some thought process. 
+
+the old things I didn’t change b/c I might still use those metrics.
+the new things have a separate space and naming. 
+I added a few new "metrics" and noted them in 1108 mostly. 
+
+the "plotting" side of things are mostly done. 
+although they might doubt the usefulness of the plots, 
+the plots show some interesting things as I said it in 1109. 
+
+# 20201109
+## fixed a bunch of things
+it's not really bugs but I think my current simulation results for hand model are probably wrong. 
+- for the disturbance, I chose a new delay time (0.1 s instead of 1 s). I did it with force model but I probably forgot it for hand model. this is why I need to rerun everything with hand.
+- I should have used *exeScript.m* to test for all controllers under both disturbance thoroughly before moving to LS. maybe the new 0.1 s delay time was not so good. maybe 0.2 s is better. but that means the trajs need to be regenerated. 
+- hand and force model both have noise but the delays are a bit different. force model is set by `pulseDelay(3)` and hand model now `hand_noise_delay`. the delay for the hand is longer b/c we also don’t want the noise when the hand force is changing. I used to overload `pulseDelay(3)` with hand's setting. I don’t really see a need for that. 
+- remember there are 2 "userInit" scripts. 
+- fixed some bug in *genMultiTrajs.m* a while ago. apparently I generated some trajs on angled wall and achieving the second half of the trajectory by `flipud()` was wrong. 
+- *exeScript.m* now can really do a "delay" and slide. that's also how I check if 0.1 s is enough. 
+- fixed hand force model in *angledWallOLwHand.slx*. now it's using the switching subsystem and the value of the disturbance is correct. I guess, still, only OL hand is affected.
+
+## interesting finds from the trajectory stiffness plot
+I'm not sure if we should report this but here's what I found. 
+
+we did sliding with 16 trajectories. 
+it's actually 8 different lines but I feel like starting from different ends could have different performance.
+so it's doubled.
+and I was right. 
+judging from what's here, I think it can be quite simple. 
+whenever the trajectory starts from the upper half of the wall (y>0), 
+the performance is better, almost no penetration for the whole simulation. 
+if the trajectory starts from the lower half, then there are more low points in the stiffness plot. 
+there are exceptions. 
+it seems that (25,25) is not so good and (-25,-25) not so bad. 
+this is only for **LIMOP**. 
+
+and then, it's **DMIMO**. 
+well, it seems better than **LIMOP**. 
+I cannot think of any reason. 
+can it be that the gain is actually designed with a different set of QR?
+
+# 20201108
+## the winding path to trajectory stiffness plot
+I've been trying a few things with this plot but so far nothing really works. 
+so let me recap a little bit to help me think. 
+
+what I did previously was no movement so there's no trajectory 
+or the trajectory was just one point. 
+I didn’t plot the stiffness throughout the simulation. 
+instead, I computed some number/metrics and compiled all of them to report a general situation. 
+I did a distribution plot based on these metrics. 
+
+now, I have a trajectory. 
+I really wanted to plot the stiffness along this trajectory 
+but I cannot find a good way to do so. 
+the problem is as before: 
+- the penetration has some "zero-crossing" moments. 
+- the negative part is ok b/c the force is also negative due to the direction. 
+- the positive part means no penetration, so there shouldn't be a stiffness. 
+- the exact 0 makes it infinity. 
+- the near 0 makes it a very high value, some value I shouldn't claim that my device can reach. 
+
+I dealt these things in the past. 
+now that I want to draw this stiffness "trajectory" instead of compute the number, this is harder to solve. 
+the first question to ask is: do I really want this plot? 
+currently, my answer is still yes 
+b/c it's new, it occupies space, and it might show some interesting things. 
+
+so, I came up with new things to describe the behavior when sliding. 
+- `care_ratio`: the idea is like PWM. this is the ratio of no penetration. 
+- `maxOffWall`: no penetration is good but too far away from wall is bad. 
+with these things, I can at least better describe the behavior. 
+
+### how to actually do the plot
+the "raw" stiffness is too much to handle. 
+there are negative values, high positive values, and many ups and downs. 
+I also tried to cut these unwanted values out of the data. 
+that leaves the data with less points and hard to compare with each other or sum up. 
+to solve the "alignment" of the data points, 
+I also tried to interpolate in between to bring back the points that got taken out. 
+extrapolation was also involved b/c the last part of the simulation can be taken out entirely. 
+extrapolation can be replaced by assigning a constant value, like something quite high. 
+currently I'm using `pchip`. `linear` will probably be fine as well. 
+`spline` is trying too hard with the smoothing. 
+
+
+what I really wanted for a single trajectory is a plot that sums up all 20 runs. 
+but I don’t actually know if the behavior along one trajectory is similar across different runs. 
+then, there is probably a "mean" plot to demonstrate the mean performance. 
+there could be an "envelop" plot to show some min/max or standard deviation. 
+doing this for 16 trajectories is still a bit much. 
+
+### differentiate the plot from the table
+if we want to report just a number, we could put it in a table. 
+when it comes to this, I think the previous metrics are still reusable. 
+and everything will be easier to sum up. 
+
+# 20201029
+## first LS run with sliding
+I should say here that the simulation is very fast with sliding. 
+that can mean a few things. 
+- the simulation time changed from 3 s to 2 s. 
+- one batch changed from probably 121 to 16 runs. 
+- why can't ADAMS be this fast?
+
+I didn’t really look into the generated data 
+b/c I need new post-processing script. 
+
+## post-processing for sliding
+I probably called what I used in ToH paper "old pp". 
+I probably intended to call the pp scripts with surface normal (3D) implemented new ones. 
+I think now the safe bet is to write these new pp scripts for sliding based on the cosim ones. 
+
+here, I want to list things that are different between versions to illustrate the need to have them:
+- cosim uses ADAMS model. the position tracking for TCP is different from Simscape.
+- hand model is different from force model b/c the signal names are different and they have different time periods to evaluate. 
+- currently, angled wall is not considered in all the work pp scripts. the ones moving in that direction have "3D" in their names. they need extra checks to see the "3D" aspect is working properly. 
+
+there are a few things that could go wrong for post-processing:
+- negative penetration. in calculation, this results in a negative stiffness.
+- too small penetration. this results in a very high stiffness. 
+
+my thinking of the plot is to have the stiffness plotted along the trajectory. 
+this is mostly for fanciness but it's also a good illustration. 
+we have a few trajectories and they cross path with each other 
+so I don’t know how that would work out. 
+it's more or less the same with one plot for one trajectory 
+but that would end up with 16 plots. 
+of course, I can also group the 16 plots and set the x axis as time. 
+then, again, it's also important to take the mean over the 20 batches. 
+
+# 20201028
+## fixed things with OL LS simulation
+a bug was fixed for row vectors have to be column vectors. 
+on top of that, `poseTraj` was added for OL in *runLSSliding.m*. 
+
+I ended up doing the quick fix for the OL controller 
+by bringing back the active XY stage. 
+actually, an XY stage cannot take care of the angled wall, 
+so the current implementation is a bush joint, 
+which is very close to the slow fix I talked about. 
+
+I don’t think it matters that much. 
+it's just that with the quick fix, there will be no deviation for OL in x and y. 
+that's something we cannot show that our proposed controller is superior. 
+I think it's also good that we don’t advertise that 
+our proposed controller has some kind of gravity compensation but OL doesn't. 
+b/c that's not really an advantage but the fact that I didn’t do OL correctly. 
+
+# 20201025
+the 1021 log is still a mess. 
+I thought I'd comb it to some senses but I bailed. 
+
+it seems that *disturbInit.m* is already good for doing sliding. 
+I only changed the delay before the signal to 0.1 s. 
+the total simulation time would be 2.1 s. 
+I thought it could be 3 s to have some consistency 
+but I think 2 s could also be ok. 
+for the hand force signal, it would be half the time changing and the other half holding. 
+I could also do that with 3 s but currently I seem to forget how to change the params for the hand force model. 
+
+# 20201022
+## added *newHand.slx* for developing this hand motion model
+hand motion model is different from the afore developed hand force model. 
+ran into problems with Simulink to physical signal w/o any derivatives again. 
+this is solved by setting the option for second order filtering. 
+I could choose provide derivatives but Euler angle derivatives don’t really make sense. 
+I'm still not sure if this is going to work. 
+
+## misc
+- added start up and shut down script for the project. now it's mostly for setting the cache folder. 
+- modified *fakeDIP.m* to have more output. *exeScript.m* is also adjusted. 
+- should have a separate earlier commit about adding **LIMOP** to *exeScript.m* but it's in this one commit now. 
+
+# 20201021
+it seems that there are many things waiting to be implemented for switching and sliding to work. 
+to clear my head and feel less stressful, I would like to list them here. 
+
+## a script to initialize disturbance for sliding
+currently, the idea is to wait for 0.1 s for initialization stabilization. 
+then, activate disturbance and the simulation is 3 s. 
+with this, I might also need separate scripts for testing and batch running. 
+
+sliding seems to work with angled wall with **DMIMO**.
+
+## current implementation on sliding and DIP
+I never wrote about what should actually happen with a real/good implementation. 
+there should be a user who is holding the tool. 
+the user moves the tool in the workspace, creating a motion and some collisions. 
+with a functioning DIP, every time a collision happens, a pose with no penetration is computed. 
+this series of poses is the input for force computing. 
+
+in current implementation, I just realized I didn’t do many things. 
+I knew I did a `fakeDIP` instead of a real one 
+but I didn’t realize that, all this time, I didn’t do the user properly. 
+sure, I did a hand model but that's for force not for motion. 
+this is why OL is having a hot-fix with a passive XY stage. 
+
+I should probably do a mass block attached to the world with defined motion. 
+that's the hand. 
+the hand and the tool are coupled by a bush joint maybe, a spring-damper system maybe. 
+in this way, we might even be able to measure the force from the hand. 
+this can tell us whether gravity compensation is working. 
+
+and all the sliding and switching, I only did it for my controllers b/c they are position controllers. 
+the effect of the position controller makes it seem that it's sliding. 
+OL will not work b/c there is no motion. 
+
+## what about OL
+well, the first step is to make the XY stage active again. 
+search for "stage" in the log for previous changes. 
+then the motion would be fed through that stage. 
+
+what about co-sim for OL?
+it seems that I did a version of XY stage in ADAMS 
+so this fix in Simscape should port nicely to co-sim. 
+btw, while I was checking this, it seems that co-sim is not compatible with angled wall. 
+that might also be something to fix. 
+
+however, like I said, this is a "patch". 
+the right way to do it is definitely doing the real hand thing I mentioned above. 
+but I'm not sure how that would turn out in co-sim, or ADAMS.
+
+another thing in mind is that there are many things I didn't do for OL. 
+the OL only has force computation but no gravity compensation. 
+that's a bit why there's this stage and the gravity is turned off for OL. 
+
+one more thing is that, depending on the current implementation for the motion in ADAMS, 
+angled wall might not work. 
+currently, the motion is defined by a marker on the TCP and a marker on the ground. 
+I'm not sure if I can but if I can make the marker on the ground turn as the wall, 
+maybe this implementation could work. 
+I think now I'm more towards doing it "the right way". 
+
+but can OL and DMIMO really be done in one slx file though?
+in my head, it really depends on how "hard" the spring-damper system for the hand is. 
+at this point, I felt like I was thinking too much.
+
 # 20201018
 ## implemented MOP controller again with real and smooth switching
 previously, I did **DMOPMIMO** with "nearest" for lookup table and switching. 

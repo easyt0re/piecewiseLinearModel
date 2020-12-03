@@ -5,20 +5,7 @@ This is a log for the development of the piece-wise linear model of our system
 ## things for the day
 - [ ] put all flags at one place and optimize them
 
-- [ ] find the correct scenarios for the simulation
-
-- [ ] automate the selection of files and scripts with different controllers and scenarios
-
-- [ ] write a new post-processing script
-
-
-- [x] reexamine the control requirement and find references for them
-
-- [ ] check how good is the linearized model
-
 - [ ] should we check some simulation with low refresh rate (run on real hardware and report the time)
-
-- [ ] comment list: 2.1, 2.5, 2.8, 3.1
 
 - [ ] figure position and figure caption
 
@@ -26,7 +13,7 @@ This is a log for the development of the piece-wise linear model of our system
 
 ## things in the dump
 ### implementation
--  modify *userHandInit.m* to isolate no hand situation
+- modify *userHandInit.m* to isolate no hand situation
 - unite the XY stage (merge OL and DMIMO)
 - collision detection for DMIMO
 - turn off gravity for DMIMO
@@ -34,6 +21,7 @@ This is a log for the development of the piece-wise linear model of our system
 - rewrite *userHandInit.m*
 - ~do collision detection with a region instead of a line (dead-zone/dead-band)~ this was implemented to some extent. (20191119)
 - do documentation for all the save files and figures
+- rewrite the save script so that only certain things are saved instead of all after a simulation
 
 ### additional checks
 - move configs to the top as well
@@ -44,6 +32,418 @@ This is a log for the development of the piece-wise linear model of our system
 - have different constraints on different directions
 - distinguish joint torque and motor torque (the modeling of gear ratio)
 - increase the dimension of the case (more complex wall)
+
+# 20201118
+## looking into the table
+I reconstructed the table to better understand the data. 
+### force DMIMO
+#### ratio
+std is low, meaning the mean makes sense. 
+however, I cannot further take the mean of the mean row 
+b/c that varies due to the moving directions. 
+
+#### maxOffWall
+mean and std don’t matter that much. 
+the max of the max is 0.33 mm. 
+I think the unit should be correct. 
+
+there are also cases that `maxOffWall` is negative, meaning they never left the wall. 
+this is definitely true and I verified this. 
+however, the ratio is not 0 for these cases 
+b/c I actually set the wall at - 0.1 mm for the moment. 
+so as long as `maxOffWall` is larger than - 0.1 mm, 
+when calculating ratio, it still considers that it's off wall for some time, 
+hence, the ratio is not 0. 
+0 should mean in wall all the time, specifically, less than - 0.1 mm all the time. 
+maybe I should change this after I check the penetration. 
+
+#### minStiff
+the max of `std/mean` is 6 % so within each trajectory, the variation is ok. 
+the min of min is 13145. 
+the numbers across different trajectories vary quite a lot. 
+probably not a good idea to take the mean. 
+
+#### meanStiff
+the max for `std/mean` is almost 20 %. 
+I think half of these ratios are above 15 %. 
+I don’t know why this happens but judging from some of the plots, I think this is possible. 
+within the same trajectory, the stiffness level actually varies quite a bit. 
+is this the effect of different disturbance force?
+it might be. 
+IF the controller is doing a great job and since it's a position controller, 
+the resulted penetration might be constant. 
+then what's really affecting the stiffness is indeed the disturbance level. 
+since we are rendering infinite stiffness (instead of a linear constant spring), 
+maybe it makes more sense to see the penetration instead of the calculated stiffness. 
+
+the mean across 16 trajectories varies from 4 to 9 ($10^4$). 
+it could be a good idea to take the mean of that again but the std would also be high, 
+probably also around 20 %. 
+
+#### maxPene
+the max of max penetration is a little more than 1 mm. 
+it's better if it's not but it's still ok I guess. 
+the mean for the "better ones" is at 0.4 mm and "worse ones" 0.7 mm. 
+maybe it's also ok to take the mean of that. 
+within each trajectory, it also varies around 20 %. 
+whether or not these numbers actually follow the normal distribution means a lot on 
+how to interpret the mean and the std reported. 
+
+#### meanPene
+the mean for all 16 trajectories varies from 0.1 to 0.3 mm. 
+judging from the `std/mean` ratio, it seems that the trajectories that are doing better 
+(the "better ones") has a higher percentage. 
+to me, that means varying more. 
+it also seems that the "better ones" has larger values in this metrics, meaning, worse. 
+this could be b/c I took out all the "no penetration" points. 
+if they were put back or assigned to 0 before taking the mean, maybe it's different. 
+there could be another metrics combining these 4 (stiff and pene) with the ratio 
+b/c these 4 metrics are generated with the results when there is penetration, 
+which is not the entire simulation. 
+these 4 metrics for the total simulation time should take into account the time period when there's no penetration, 
+which is why there is this ratio metrics. 
+
+one down, 5 more to go.
+
+### force LIMOP
+this time I also have compare it to the previous controller. 
+#### ratio
+still looks normal, as expected. 
+hopefully, all have slight improvement over DMIMO. 
+
+#### maxOffWall
+the max of the max is 0.34 mm, 
+0.01 larger than DMIMO. 
+I don’t know how to argue that. 
+
+the min of this is positive, meaning 
+on all trajectories, the tool really come off the wall at at least one point. 
+
+#### minStiff
+the max of `std/mean` is 5 %, so within each trajectory, the variation is ok. 
+the min of min is 13260. 
+not too much of an improvement, probably 1 %. 
+same as before, the "better ones" are doing better. 
+
+#### meanStiff
+the max for `std/mean` is a little more than 20 %. 
+
+the mean across 16 trajectories varies from 4 to 9 ($10^4$). 
+it could be a good idea to take the mean of that again but the std would also be high, 
+probably also around 20 %. 
+the "better ones" are having lower values as before 
+but overall, it's probably better than DMIMO. 
+
+#### maxPene
+the max of max penetration is a little more than 1 mm and actually more than DMIMO. 
+it seems that this metrics is worse than DMIMO. 
+it could also b/c the "no penetration" period should be considered. 
+
+#### meanPene
+this is more or less the same with DMIMO. 
+
+### force OL3D
+this controller is definitely going to be different. 
+#### ratio
+the ratio is mostly 0. 
+what happened was that the tool was initialized on the wall. 
+sometimes it can be a tiny bit away from the wall 
+and that's probably all the "no penetration" period. 
+the max of the max ratio is just 1.3 % 
+but it seems that most of the ratios are less than 1 %. 
+this max only happens at trajectory 14.
+
+#### maxOffWall
+the max of max is very very small, 0.0178 mm. 
+this is basically the initial position, which is zero. 
+that's also why the std is 0 
+b/c every time it initializes at the same position. 
+combining this with ratio, we can see that the tool is in the wall the whole time. 
+then, the penetration should be more interesting. 
+the maxOffWall for some trajectories are even negative, so no leaving the wall. 
+
+#### minStiff
+the mean of this is reaching 3000 but the stiffness we set is 6000 actually. 
+maybe it's a coincidence that it's half but this is more or less what we reported in ToH paper. 
+there is also little variation. 
+the max of `std/mean` is 3.5 %. 
+I guess the mean of mean makes sense in this case. 
+
+the min of min is 2659. the max of max is 3104. the mean of mean is 2900. 
+maybe for OL3D it's also good to report a maxStiff but I guess the idea should be pretty clear: 
+our controller is definitely better in the rendered stiffness.
+
+for this controller, the difference based on different directions and trajectories is hard to see. 
+for this purpose specifically we could try t-test again or box plot. 
+maybe there is a very small difference but it can be insignificant. 
+
+#### meanStiff
+the max for `std/mean` is 5.3 %, which is an ok variation. 
+the mean across 16 trajectories varies from 7000 to 8000. 
+
+#### maxPene
+the max of max is 5.2 mm. 
+actually most of max row is around 5 mm. 
+the min of min row is still 2.6 mm. 
+
+#### meanPene
+mean of mean row is 1.9 mm. 
+min of min row is 1.3 mm. 
+max of max row is 2.5 mm. 
+if we use this to calculate meanStiff, it's also around 7500. 
+
+
+### hand DMIMO
+#### ratio
+the ratio this time is a bit different, there are finally "1"s. 
+the "worse ones" mostly have a ratio lower than 50 %. 
+
+#### maxOffWall
+mean and std don’t matter that much. 
+the max of the max row is 0.32 mm. 
+
+I don’t really understand why this traj 12 is behaving so badly. 
+traj 15 is also not so good. 
+
+#### minStiff
+this is probably not that important for hand cases as we know there is no "dip". 
+and b/c we have "no penetration" cases, some of the minStiff is set to 160000. 
+
+there's something alarming here. 
+the min of the min row is only 11. 
+in general, the numbers for the "worse ones" are not high, a few thousand or around 20. 
+this is probably something I observed in the plots 
+that the stiffness plots were rising slowly instead of abruptly like in the force model. 
+I need to see LIMOP and those "pene" metrics to understand more. 
+
+#### meanStiff
+this is more like what I was expecting. 
+`std/mean` is lower than 20 % if you take out the traj when the number is set to 160000. 
+and if we only take the mean of the last 8 of the mean row, the number is 66889.5. 
+min of min row last 8 is 36910. 
+
+#### maxPene
+some of these are set to 0 or close to 0. 
+the max of max row last 8 is around 0.354 mm. 
+traj 3 and 5 should also be included. 
+b/c I'm doing this in excel, it's a bit hard to do 
+but the final number should still be something like this. 
+those `NaN` are just `0/0`. 
+
+#### meanPene
+the mean row is pretty consistent. 
+the mean of mean row last 8 is 0.157 mm. 
+
+### hand LIMOP
+#### ratio
+did I do something wrong? 
+the "better ones" are worse than DMIMO, not as many "1"s. 
+but the "worse ones" seem better than DMIMO. 
+
+#### maxOffWall
+this is again mostly positive values. 
+the max of the max is 0.34 mm, 
+same as force model but 0.02 larger than DMIMO this time. 
+I don’t know how to argue that. 
+
+it's interesting that we still have negative values here in the min row, 
+meaning for that run, the tool is always in the wall. 
+however, we don’t have that for force model. 
+how's that possible? 
+is this negative value caused by the controller instead of the disturbance? 
+these negative values are very close to 0 
+so it could be the actual wall position the controller tries to hold. 
+
+#### minStiff
+again, this metrics is very weird for this hand model. 
+I may need to change my way of processing the data to have some better looking numbers. 
+the min of min row is only 5 now. 
+
+#### meanStiff
+the max for `std/mean` should be less than 20 %, taking out the first 8. 
+
+the mean of the mean row last 8 is 67934, slightly higher than DMIMO. 
+
+#### maxPene
+the max of max penetration is 0.367 mm and larger than DMIMO. 
+it seems that this metrics is worse than DMIMO. 
+it could also b/c the "no penetration" period should be considered. 
+
+#### meanPene
+this is more or less the same with DMIMO. 
+
+### hand OL3D
+this is the last one. 
+#### ratio
+the ratio is lower than 10 %, the max of max row is 7.7 %. 
+the mean row is quite consistent. 
+the mean of mean row is 5.2 %. 
+this probably means that the oscillation gets it off the wall. 
+
+#### maxOffWall
+the max of max is very very small, 0.05 mm. 
+it's the same as the force model. 
+this number is basically reporting the initial position, which is zero. 
+
+#### minStiff
+the mean row varies a lot, from something like 1700 to 4000. 
+there's nothing to talk about really. 
+the performance varies and the influence of different trajectories and directions is not clear. 
+we probably won't report this metrics. 
+
+#### meanStiff
+the mean row seems to be very consistent. 
+the mean of mean row is 5999, which is basically what we set and same as QP results.  
+the max for `std/mean` is less than 1 % so it's really consistent within each trajectory. 
+this result is lower than force model. 
+I don’t really know how to explain this. 
+but the ratio is larger for hand and we probably won't report this metrics with force. 
+
+#### maxPene
+the max of max is 2.9 mm. 
+again, it looks fairly consistent to me. 
+better than force as expected. 
+
+#### meanPene
+mean of mean row is 1.6 mm. 
+min of min row is 1.1 mm. 
+max of max row is 2.1 mm. 
+if we use this to calculate meanStiff, it's also around 7500. 
+
+## summary of looking at the huge table
+in general, this is too much to think about and redo. 
+maybe I should just take the mean another time and be done with it. 
+
+### about trajectory directions
+it seems that Kjell doesn't want to talk about different trajectories, let alone directions. 
+however, if we do want to dig something, we may need more statistics, like t-test and other things. 
+first 8 have to compare against last 8 to see if direction is making a difference. 
+all trajectories may also need to compare with each other to see if trajectories really makes a difference. 
+I think the answer for the last one is "yes" 
+but maybe it's not a good idea to talk about it. 
+
+### baseline
+the performance of OL3D is bad enough. 
+the only strange thing is that for force model, the mean stiffness is higher than 7000, higher than what we set. 
+this could be b/c I didn’t cut down enough high points. 
+but again, we probably won't report this number. 
+
+on the other hand, the performance is also consistent, 
+regardless of different trajectories. 
+come to think of it, it doesn't really matter to this controller where it is right now. 
+whenever there is penetration, compute a force and act to it, that's enough for the controller. 
+the only reason this controller cares about "where" is the changes in jacobian matrix.
+
+### different ways of processing the data
+now, the "bad" points were taking out, 
+say, when there is negative penetration or too high stiffness. 
+if they are manually set to some number and go into calculation, the result is going to be different. 
+this is probably what I did last time and I don’t really like it. 
+
+is it possible to really take the ratio into account for other metrics?
+of course it is. 
+the problem is that the result would be a score instead of something with physical meaning. 
+
+### problem in hand model
+the minStiff for SOP and MOP is a bit strange. 
+it's too low. 
+I might need to do something else for this. 
+this is also a different way to process data 
+but I think this should be a separate point. 
+
+however, why don’t we see this in OL3D?
+
+### hard to justify the advantage MOP over SOP
+the improvement in number currently is tiny. 
+sometimes SOP seems doing better. 
+MOP can have better performance where SOP does poorly. 
+in the QP results, it improved lower half of the wall. 
+in here, QT, it probably improves those starting from the lower half. 
+
+# 20201116
+too many bugs. 
+there are many things in the data. 
+my code has to consider all of them. 
+
+apart from high or negative values, 
+there are exact zero values in the data. 
+I think it's caused by 0 disturbance force. 
+this shouldn't happen but it's probably b/c when I try to find the start index for the step, 
+I always take one step before. 
+I also need to take these out. 
+
+# 20201115
+## updated *ppSlidingHand.m* and *sumSliding.m*
+copied the new part from *ppSlidingForce.m* to *ppSlidingHand.m*. 
+apparently, the performance for hand is better as expected. 
+there were more "no penetration" cases and they were never into the wall, which is a bit strange. 
+there should be some form of penetration to trigger the controller. 
+maybe the stiffness was just too high and that's why after I took out the negative and the high points, 
+there was nothing left, which is kind of a problem. 
+
+with the hand, I implemented that if the `ratio` was close to 1, 
+some numbers were manually set instead of calculated. 
+I should also do this for the force 
+but since it's running ok, I think it can wait. 
+
+the raw results from **OL3D** is still bugging me for the changing dimension. 
+somehow, this didn’t show up when I did the force results. 
+it only showed up within one batch. 
+now with the hand, it showed up across batches. 
+so now, in addition to doing `try catch` for `save_force`, 
+I also have to do it for `save_forceVizSum`. 
+since more and more things are having this behavior, I was thinking about making it a function. 
+but I didn’t achieve this for the first time. 
+maybe it requires some extra thoughts. 
+another way to do it is to initialize everything larger and use always a subset. 
+this could be a simple fix.
+currently, I simply commented out these things for **OL3D**. 
+
+this also goes back to "should I use the low gain to see if some of these could be avoided". 
+I'm talking about having some penetrations here, not the **OL3D** problem. 
+
+## misc
+- *sumSliding.m* now can take save files from different controllers together. I used to manually feed different sets of save files for different controllers. 
+- reusing my own code creates problems. some things will have the same names though they shouldn't. combined with save and load, many things can be replaced with wrong values. 
+
+# 20201113
+## mismatch in number of time points in different simulations
+first of all, this should be possible. 
+my simulation is always running with a variable step solver, 
+allegedly giving me results close to continuous time. 
+however, my controller should always be discrete time, wrapped with ZOH. 
+
+I think this happens when large change is found in the simulation 
+so the solver decided that it wanted some extra steps instead of every 1 ms. 
+this actually happens for all controllers. 
+I have checked this. 
+the problem is: for **OL3D**, when I take out the part w/o the initial stabilization time, 
+the number of time points is changing for only 1 or 2 runs. 
+it's also quite interesting that based on my way of finding the start and finish time points, 
+apart from these odd ones, all else across all controllers give me 2003 time points.
+the odd ones give me 2013. 
+the odd ones are traj 14 and 6, which is the 2 directions of sliding on exactly the y axis. 
+
+# 20201112
+## the high/low gain in my controller design
+I guess the answer to my interesting (disastrous) finding on 1109 was, yes, the results are generated with different gains. 
+**LIMOP** was using the low gain while **DMIMO** high. 
+I saved a bunch of gains in the data folder.
+the gain for **SDMOP** is high; 
+**DMOP**, which is actually for the old **DMOPMIMO**, low; 
+and there is *saveDMOP.mat*, which happens to be the gain I used for new **LIMOP**, also low. 
+I guess I kept these old files for compatibility 
+but I shouldn't have chosen one and used it w/o checking. 
+now I created a gain specifically for **LIMOP** and it's high. 
+
+overall, I used high gain most of or all the time in my study. 
+that's why I'm going to run **LIMOP** with high gain to continue, 
+instead of changing **DMIMO** to low. 
+this could be a problem as most of the data points would fly off the plot as the results indicated. 
+I can also run both. 
+
+## misc
+- no need for **SDMOP** to load offset it seems. probably copied some extra code. only **DMIMO** needs that b/c there is only gain in the controller save file. this should be applied to other runLS scripts but I didn’t. should be fine. 
 
 # 20201110
 ## pp scripts for sliding

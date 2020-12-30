@@ -33,6 +33,92 @@ This is a log for the development of the piece-wise linear model of our system
 - distinguish joint torque and motor torque (the modeling of gear ratio)
 - increase the dimension of the case (more complex wall)
 
+# 20201229
+might be the last entry of 2020. just might. 
+## there's something wrong with the fakeDIP
+when I wrote *fakeDIP.m*, I used `waypointTrajectory()` 
+b/c it seemed cool and high-end. 
+it smoothed the trajectory automatically and guaranteed second order differentiable. 
+I thought that's gonna help me. 
+unfortunately, w/o looking closely at my generated trajs, I might have made some mistakes. 
+first of all, the *traj2s.mat* on my laptop seemed to be corrupted by wrong start and stop pose. 
+this was supposed to be fixed a long time ago. 
+since I ran my simulations on Xinhai's PC, I can only hope the file there was correct. 
+secondly, b/c of this smoothing, the resulted trajs were not really straight lines as we designed. 
+I think this is due to the coupling of velocity direction and the orientation. 
+in this case specifically, it seemed that the direction of x positive corresponded to the rotation of (0,0,0). 
+only 3 of our trajs were actually in this direction. 
+so the rest of the trajs were all wrong. 
+
+*fakeDIPRedo.m* was added to redo it. 
+currently, this is actively used in *genMultiTrajs.m*. 
+instead of using `waypointTrajectory()` to automatically generate smooth trajs, 
+I wrote them manually this time. 
+the result is pure math, meaning it might have problem doing it on a physical device. 
+since this later serves as a reference trajectory, or the fake result of DIP, 
+I think this is not really a problem. 
+this basically means that I have to run everything again. 
+different saves and versions of the files are killing me. 
+
+this actually originated from Lei asking me to check the tracking error of the controller 
+if we treat the whole thing as a position tracking problem. 
+I don’t think it's actually the case but it's nonetheless good to check. 
+currently, *checkTrackError.m* can help me check if the generated trajs are correct. 
+I'll modify it later to have the reference and the measured signal together for comparison. 
+
+I seriously doubt the content of *traj2s.mat* and whether the one I used in all simulations is the corrupted one. 
+based on the redo method, *traj2sNew.mat* is saved on my laptop. 
+I saved more things in it to better remember how it's generated. 
+another thing is that maybe it's also good to save reference signals in the result of a simulation. 
+I didn’t do it b/c it needs to change the simulink files. 
+it's also ok to just use the saved trajs as long as you use the right one. 
+
+# 20201218
+reading nonlinear system textbook at this point to learn about gain scheduling. 
+from page 494 fig. 12.4 and another previous figure, 
+it seems that there is a difference between whether the integral gain comes 
+before or after the integration block. 
+I don’t really understand this part. 
+it's hard to read and to understand. 
+but the "conclusion" seems to be that 
+it's better that the integration is closer to output for some reason. 
+I probably did the opposite in the implementation of the controllers. 
+from a "simple control" point of view, 
+which is another way of saying my point of view, 
+gain is just a constant. 
+it doesn't matter when to apply it. 
+however, maybe that's exactly why it's different here 
+as we are doing gain scheduling, so the gain is indeed changing. 
+
+in the example here in the textbook, 
+they also kinda mentioned a "staircase" test instead of a step. 
+that could be a way to check whether my implementation has a problem. 
+
+I read the chapter very roughly 
+but I don’t think they mentioned how to really do switching. 
+
+# 20201211
+so long. I didn’t realize I've been sitting on this result for almost a month now. 
+
+## about the report of the results
+I found a violin plot MATLAB function on Github. 
+This is what I'm using right now with some modifications. 
+to shrink the size on the x axis, this is more like a half-violin plot now. 
+
+I separated OL3D from SOPC and MOPC 
+b/c the results are not at the same level. 
+I also separated the first and last 8 QTs for a similar reason.
+for the hand model, most of the first 8 QTs were omitted for high values. 
+QT 5 was also taken out for not looking good. 
+QT 3 was originally kept but taken out in the end. 
+first of all, it didn’t go with my explanations. 
+secondly, and I think this justify the take-out, 
+this could again be the result of too many data points had already been taken out. 
+the ones that left were a bunch of low ones that couldn't represent the whole group. 
+
+# misc
+- in writing, I tried to find the process behind set OL3D to 6000 Nm but I couldn't find anything. a search for 5000 or 50000 will give you something but I thought I logged down the whole process.
+
 # 20201118
 ## looking into the table
 I reconstructed the table to better understand the data. 

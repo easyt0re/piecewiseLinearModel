@@ -33,6 +33,113 @@ This is a log for the development of the piece-wise linear model of our system
 - distinguish joint torque and motor torque (the modeling of gear ratio)
 - increase the dimension of the case (more complex wall)
 
+# 20210112
+to rest my suspicions, I regenerated all QTs with a longer initialization delay. 
+minStiff plot was like the new traj plot, 
+only with less differences. 
+thus, the "separation" among data points is not that clear anymore. 
+avgStiff plot was kind of like the old traj plot, 
+where MOP didn’t really have a clear win over SOP. 
+and again, with the ratio combined, MOP won. 
+however, some data points are again off the chart, 
+making the plot hard to draw. 
+it should also be noted that 
+for the new traj, SOP hand had almost all 0 ratios. 
+but for this long traj, it had about the same ratios as MOP. 
+whether this is caused by the longer delay 
+or the changes in pp scripts is unknown. 
+I hope it's for the first one. 
+
+overall, I feel like over-processing the data from time to time. 
+we had a hypothesis before everything 
+but that hypothesis had a logical outcome. 
+to reach a not-so-surprising conclusion, 
+I tend to play with things, manipulate them. 
+a guide is good, so that I shouldn't be terribly wrong, 
+but sometimes I also feel like I'm biased. 
+
+## misc
+- *traj2sNewLong.mat* is generated with 0.5 s delay in the front
+- to do that, *genMultiTrajs.m*, *disturbInit.m*, *userHandInit.m* were changed to 0.5 s instead of 0.1 s, only on Xinhai's PC
+- however, there was also *userHandInitFcn.m* but it was not changed. I forgot. whether this affects the results I don’t know. 
+- maybe it's a good thing to collect these things in one place. pass the params around is always a problem for me. rewrite. 
+
+# 20210110
+happy b day
+## updated *checkTrackError.m* 
+now the script can display the position error in all 3 directions. 
+I didn’t spot any real problems with the data. 
+it seems to be doing ok. 
+maybe the delay for initialization is a bit short. 
+0.1 s is barely enough for stabilization. 
+
+the reported "many ratios for SOP are zero" seems to be true. 
+it seems to have a hard time getting back to the surface. 
+OL is oscillating and borderline stable. 
+the behavior for SOP is definitely more desirable 
+but I don’t have a good metrics to capture that. 
+ideally, it should be some kind of zero-crossing metrics. 
+or something that can tell that something is oscillating. 
+however, I think that's like too specific. 
+it's like you cannot find anything else that's good. 
+
+for QT 6, I'll just leave as it's off the chart. 
+I don’t think it's that interesting and worth looking into it. 
+
+## maybe a big question
+I think the real/big question here is that 
+we are actually using a controller designed for certain control plant 
+to control something that's slightly different. 
+this seems to be in general what control is dealing with. 
+but on top of that, we are using interpolation. 
+the interpolated controller is not guaranteed stable or anything. 
+some results from the controllers show that it's slowly growing. 
+I'm not sure if that eventually turn into instability 
+but that's not really converging. 
+I guess that's kind of the reason behind not using gain scheduling and things. 
+there's always a catch. 
+
+# 20210106
+now that I reran the whole simulation, 
+it is confirmed that I did mess up with the trajs and they were wrong. 
+with the new trajs, the results are actually better, 
+meaning MOP shows an obvious improvement than SOP. 
+
+## added *tryViolinPlotNew.m* for new trajs
+instead of changing the old one, 
+this new script was added. 
+the plots are more or less the same, 
+only minor details were changed. 
+
+the good news is this time the MOP is significantly better than SOP. 
+the bad news is some of the discussions I struggled to find before 
+are not valid anymore. 
+there are again a few things I don’t know how to explain. 
+I was always worried that I was "over-fitting" the results. 
+but I guess the way I do this is correct, 
+I see the results first, 
+and then I try to find something in the data that can explain this. 
+
+a few new things might be wrong, 
+so potentially there could still be bugs. 
+the force model QT 6 has some weird behavior. 
+currently it's omitted in the figure. 
+it seems that QT 6 and 14 are really a pair 
+and they are on the y axis. 
+for the hand model, SOP is kinda better than MOP along QT 10. 
+I can probably explain this using the ratio but why really. 
+the ratio for SOP for the last 8 QTs are all zeros. 
+that's also something I don’t understand. 
+with the previous run, the results are basically identical. 
+now, it doesn't have that good mirroring effect anymore. 
+
+I'm writing this because I've already go through 
+my results and discussion sections to put in the new results. 
+b/c there could be bugs, I feel like I should check first 
+before scratching my head to find some weird ways to explain 
+what I'm having right now. 
+I think my next thing would be checking the tracking error. 
+
 # 20201229
 might be the last entry of 2020. just might. 
 ## there's something wrong with the fakeDIP

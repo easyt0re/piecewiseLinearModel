@@ -33,6 +33,15 @@ This is a log for the development of the piece-wise linear model of our system
 - distinguish joint torque and motor torque (the modeling of gear ratio)
 - increase the dimension of the case (more complex wall)
 
+# 20210131
+## copied *plotTypical.m* to the project util
+for the ToH paper, I had "typical response" plots. 
+I did it with the *plotTypical.m* and \*.mat like *typHandd10.mat*. 
+for the grid gain scheduling paper, Lei was suggesting a plot like that. 
+so I copied this script over. 
+originally, it's in "Simscape TAU" folder, 
+where all my files were before starting this project structure.
+
 # 20210112
 to rest my suspicions, I regenerated all QTs with a longer initialization delay. 
 minStiff plot was like the new traj plot, 
